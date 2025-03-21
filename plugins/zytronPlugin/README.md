@@ -99,6 +99,3 @@ The `ZytronPlugin` provides several functions that can be used by the agent:
 - `checkWalletFunction`: Query a wallet's balance. Arguments: `wallet_address`
 - `sendTokenFunction`: Send tokens to another wallet. Arguments: `recipient`, `amount`, `symbol`
 
-## License
-
-This project is licensed under the MIT License.
