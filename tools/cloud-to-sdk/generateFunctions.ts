@@ -42,7 +42,7 @@ export const ${fn.fn_name}Function = new GameFunction({
                 e instanceof Error ? e.message : "Operation failed"
             );
         }
-    }${fn.hint ? `,\n    hint: "${fn.hint}"` : ''}
+    }${fn.hint ? `,\n    hint: \`${fn.hint}\`` : ''}
 });`).join('\n')).join('\n')}
 
 export const functions = {
