@@ -29,20 +29,8 @@ export const ${fn.fn_name}Function = new GameFunction({
     name: "${fn.fn_name}",
     description: \`${fn.fn_description}\`,
     args: ${JSON.stringify(fn.args, null, 4)} as const,
-    executable: async (args, logger) => {
-        try {
-            // TODO: Implement function
-            return new ExecutableGameFunctionResponse(
-                ExecutableGameFunctionStatus.Done,
-                "Operation completed successfully"
-            );
-        } catch (e) {
-            return new ExecutableGameFunctionResponse(
-                ExecutableGameFunctionStatus.Failed,
-                e instanceof Error ? e.message : "Operation failed"
-            );
-        }
-    }${fn.hint ? `,\n    hint: \`${fn.hint}\`` : ''}
+    ${fn.hint ? `hint: \`${fn.hint}\`,` : ''}
+    executable: ${generateExecutableFunction(fn)}
 });`).join('\n')).join('\n')}
 
 export const functions = {
@@ -58,3 +46,53 @@ export const functions = {
         throw error;
     }
 }
+
+const generateExecutableFunction = (fn: any) => {
+    if (fn.config?.url) {
+        // Convert {{response.X.Y}} to ${data[X].Y}
+        const hasResponseFormat = /{{response\.\d+\.\w+}}/.test(fn.config.success_feedback);
+        const convertedFeedback = hasResponseFormat 
+            ? fn.config.success_feedback.replace(
+                /{{response\.(\d+)\.(\w+)}}/g, 
+                (_: string, index: string, prop: string) => `\${data[${index}].${prop}}`
+            )
+            : fn.config.success_feedback;
+
+        return `async (args, logger) => {
+        try {
+            const response = await fetch(
+                \`${fn.config.url}\`
+            );
+            const data = await response.json();
+            
+            if (data.cod !== 200) {
+                throw new Error(data.message || 'Failed to fetch data');
+            }
+            return new ExecutableGameFunctionResponse(
+                ExecutableGameFunctionStatus.Done,
+                \`${convertedFeedback}\`
+            );
+        } catch (e) {
+            return new ExecutableGameFunctionResponse(
+                ExecutableGameFunctionStatus.Failed,
+                e instanceof Error ? e.message : "Operation failed"
+            );
+        }
+    }`;
+    }
+    
+    return `async (args, logger) => {
+        try {
+            // TODO: Implement function
+            return new ExecutableGameFunctionResponse(
+                ExecutableGameFunctionStatus.Done,
+                "Operation completed successfully"
+            );
+        } catch (e) {
+            return new ExecutableGameFunctionResponse(
+                ExecutableGameFunctionStatus.Failed,
+                e instanceof Error ? e.message : "Operation failed"
+            );
+        }
+    }`;
+};
