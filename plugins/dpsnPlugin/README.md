@@ -8,8 +8,8 @@
 
 ## 📋 Overview
 
-The DPSN Plugin enables Virtuals Protocol agents to subscribe to and interact with any data streams available on the [DPSN Data Streams Store](https://streams.dpsn.org/).
-
+#### The DPSN Plugin enables Virtuals Protocol agents to subscribe to and interact with any data streams available on the [DPSN Data Streams Store](https://streams.dpsn.org/).
+#### To provide personalized data streams to Virtual Protocol agents for them to interact with , create and publish data into your own DPSN data streams using [dpsn-client](https://github.com/DPSN-org/dpsn-client-nodejs#dpsn-client-nodejs) . 
 For more information, visit:
 
 - [DPSN Official Website](https://dpsn.org)
