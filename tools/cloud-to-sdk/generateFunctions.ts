@@ -49,7 +49,6 @@ export const functions = {
 
 const generateExecutableFunction = (fn: any) => {
     if (fn.config?.url) {
-        // Convert {{response.X.Y}} to ${data[X].Y}
         const hasResponseFormat = /{{response\.\d+\.\w+}}/.test(fn.config.success_feedback);
         const convertedFeedback = hasResponseFormat 
             ? fn.config.success_feedback.replace(
@@ -58,10 +57,18 @@ const generateExecutableFunction = (fn: any) => {
             )
             : fn.config.success_feedback;
 
+        const method = fn.config.method?.toUpperCase() || 'GET';
+        const fetchOptions = {
+            method,
+            headers: fn.config.headers || {},
+            ...(method !== 'GET' && fn.config.payload ? { body: JSON.stringify(fn.config.payload) } : {})
+        };
+
         return `async (args, logger) => {
         try {
             const response = await fetch(
-                \`${fn.config.url}\`
+                \`${fn.config.url}\`,
+                ${JSON.stringify(fetchOptions)}
             );
             const data = await response.json();
             
