@@ -4,7 +4,7 @@ import {
   GameAction,
   GameAgent,
   IGameClient,
-  LLMModelName,
+  LLMModel,
   Map,
 } from "./interface/GameClient";
 import GameWorker from "./worker";
@@ -16,7 +16,7 @@ class GameClientV2 implements IGameClient {
 
   constructor(
     private apiKey: string,
-    private llmModelName: LLMModelName | string,
+    private llmModel: LLMModel | string,
     private llmModelBaseUrl: string,
     private llmModelApiKey: string
   ) {
@@ -25,7 +25,7 @@ class GameClientV2 implements IGameClient {
       headers: {
         "Content-Type": "application/json",
         "x-api-key": this.apiKey,
-        model_name: this.llmModelName,
+        model_name: this.llmModel,
         model_base_url: this.llmModelBaseUrl,
         model_api_key: this.llmModelApiKey,
       },

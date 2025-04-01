@@ -5,7 +5,7 @@ import {
   GameAction,
   GameAgent,
   IGameClient,
-  LLMModelName,
+  LLMModel,
   Map,
 } from "./interface/GameClient";
 
@@ -15,7 +15,7 @@ class GameClient implements IGameClient {
 
   constructor(
     private apiKey: string,
-    private llmModelName: LLMModelName | string
+    private llmModel: LLMModel | string,
   ) {}
 
   async init() {
@@ -26,7 +26,7 @@ class GameClient implements IGameClient {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
-        model_name: this.llmModelName,
+        model_name: this.llmModel,
       },
     });
   }

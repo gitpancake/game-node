@@ -1,7 +1,7 @@
 import GameClient from "./api";
 import GameClientV2 from "./apiV2";
 import { ExecutableGameFunctionResponseJSON } from "./function";
-import { ActionType, IGameClient, LLMModelName } from "./interface/GameClient";
+import { ActionType, IGameClient, LLMModel } from "./interface/GameClient";
 import GameWorker from "./worker";
 
 interface IGameAgent {
@@ -10,7 +10,7 @@ interface IGameAgent {
   description: string;
   workers: GameWorker[];
   getAgentState?: () => Promise<Record<string, any>>;
-  llmModelName?: LLMModelName | string;
+  llmModel?: LLMModel | string;
   llmModelBaseUrl?: string;
   llmModelApiKey?: string;
 }
@@ -34,24 +34,24 @@ class GameAgent implements IGameAgent {
   }
 
   constructor(apiKey: string, options: IGameAgent) {
-<<<<<<< HEAD
-    const llmModel = options.llmModel || LLMModel.Llama_3_3_70B_Instruct;
-=======
-    const llmModelName =
-      options.llmModelName || LLMModelName.Llama_3_1_405B_Instruct;
+    const llmModel = options.llmModel || LLMModel.Llama_3_1_405B_Instruct;
+
     const llmModelBaseUrl = options.llmModelBaseUrl || "";
     const llmModelApiKey = options.llmModelApiKey || "";
 
-    if (!!llmModelBaseUrl !== !!llmModelApiKey) {
-      throw new Error(
-        "Both llmModelBaseUrl and llmModelApiKey must be provided together"
-      );
+    // If custom model URL is provided, require API key
+    if (options.llmModelBaseUrl || options.llmModelApiKey) {
+      if (!options.llmModelBaseUrl || !options.llmModelApiKey) {
+        throw new Error(
+          "Both llmModelBaseUrl and llmModelApiKey must be provided together"
+        );
+      }
     }
->>>>>>> 4b085b0 (Added custom LLM models as arguments)
+
 
     this.gameClient = apiKey.startsWith("apt-")
-      ? new GameClientV2(apiKey, llmModelName, llmModelBaseUrl, llmModelApiKey)
-      : new GameClient(apiKey, llmModelName);
+      ? new GameClientV2(apiKey, llmModel, llmModelBaseUrl, llmModelApiKey)
+      : new GameClient(apiKey, llmModel);
     this.workerId = options.workers[0].id;
 
     this.name = options.name;

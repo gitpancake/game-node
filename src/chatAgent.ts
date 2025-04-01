@@ -162,7 +162,7 @@ export class ChatAgent {
     this.prompt = prompt;
 
     if (api_key.startsWith("apt-")) {
-      this.client = new GAMEClientV2(api_key, LLMModel.Llama_3_3_70B_Instruct);
+      this.client = new GAMEClientV2(api_key, LLMModel.Llama_3_3_70B_Instruct, "", "");
     } else {
       throw new Error("Please use V2 API key to use ChatAgent");
     }

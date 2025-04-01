@@ -4,7 +4,7 @@ import GameFunction, {
   ExecutableGameFunctionResponse,
   ExecutableGameFunctionStatus,
 } from "./function";
-import { LLMModelName } from "./interface/GameClient";
+import { LLMModel } from "./interface/GameClient";
 
 export {
   GameAgent,
@@ -12,5 +12,5 @@ export {
   GameWorker,
   ExecutableGameFunctionResponse,
   ExecutableGameFunctionStatus,
-  LLMModelName,
+  LLMModel,
 };
