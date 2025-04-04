@@ -8,12 +8,15 @@
 
 ## 📋 Overview
 
-#### The DPSN Plugin enables Virtuals Protocol agents to subscribe to and interact with any data streams available on the [DPSN Data Streams Store](https://streams.dpsn.org/).
-#### To provide personalized data streams to Virtual Protocol agents for them to interact with , create and publish data into your own DPSN data streams using [dpsn-client](https://github.com/DPSN-org/dpsn-client-nodejs#dpsn-client-nodejs) . 
-For more information, visit:
 
-- [DPSN Official Website](https://dpsn.org)
-- [Virtuals Protocol](https://virtuals.io/)
+This plugin enables Virtuals Protocol agents to connect to, subscribe to, and interact with data streams available on the [DPSN Data Streams Store](https://streams.dpsn.org/).
+
+Agents can leverage this plugin to consume real-time data for decision-making, reacting to events, or integrating external information feeds.
+
+To provide personalized data streams for your agents, you can create and publish data into your own DPSN topics using the [dpsn-client for game-node](https://github.com/DPSN-org/virtuals-game-node/tree/feature/dpsn-plugin).
+
+For more information, visit:
+-   [DPSN Official Website](https://dpsn.org)
 
 ## ✨ Features
 
@@ -33,6 +36,12 @@ npm install @virtuals-protocol/plugin-dpsn
 
 Add the following environment variables to your `.env` file:
 >**Note**: The EVM private key is used only for signing authentication messages, this process do not execute any kind of onchain transaction nor incurs any txn fees.
+
+- **Setup env**:
+```bash
+  cd /plugins/dpsnPlugin/
+  cp .env.example .env
+```
 
 ```
 EVM_WALLET_PRIVATE_KEY=your_evm_wallet_private_key_here
