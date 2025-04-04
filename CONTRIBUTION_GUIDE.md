@@ -13,6 +13,12 @@ There are various ways you can contribute to the GAME SDK, whether it's fixing b
 6. **Push** the branch to your fork and submit a pull request.
 7. **Label** the pull request appropriately based on the [label definitions](#label-definitions).
 
+### General Contribution Guidelines
+If you are contributing to the core SDK, ensure the following:
+- The code is well-documented.
+- Your PR follows the [default PR template](./.github/PULL_REQUEST_TEMPLATE/default.md).
+- Screenshots, video demonstrations, or logs showcasing the changes are included (if applicable).
+
 ### Plugin Contribution Guidelines
 If you are adding a new plugin, ensure the following:
 - A `README.md` file exists in the plugin root directory and includes:

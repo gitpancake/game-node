@@ -1,6 +1,6 @@
 import GAMEClientV2 from "./apiV2";
 import { LLMModel } from "./interface/GameClient";
-import  GameFunction, { ExecutableGameFunctionResponse }  from "./function";
+import GameFunction, { ExecutableGameFunctionResponse } from "./function";
 
 // Type definitions
 export interface Argument {
@@ -90,14 +90,17 @@ class Chat {
         (msg) => console.log(msg)
       );
 
-      responseMessage = await this.reportFunctionResult(result, convoResponse.function_call.id);
+      responseMessage = await this.reportFunctionResult(
+        result,
+        convoResponse.function_call.id
+      );
       functionCallResponse = {
         fn_name: fnName,
         fn_args: convoResponse.function_call.args,
         result: {
           action_id: convoResponse.function_call.id,
           action_status: { value: result.status },
-          feedback_message: result.feedback
+          feedback_message: result.feedback,
         },
       };
     } else {
@@ -127,7 +130,10 @@ class Chat {
     return result as GameChatResponse;
   }
 
-  async reportFunctionResult(result: ExecutableGameFunctionResponse, fnId: string): Promise<string> {
+  async reportFunctionResult(
+    result: ExecutableGameFunctionResponse,
+    fnId: string
+  ): Promise<string> {
     const data = {
       fn_id: fnId,
       result: result.feedback
@@ -156,7 +162,7 @@ export class ChatAgent {
     this.prompt = prompt;
 
     if (api_key.startsWith("apt-")) {
-      this.client = new GAMEClientV2(api_key, LLMModel.Llama_3_1_405B_Instruct);
+      this.client = new GAMEClientV2(api_key, LLMModel.Llama_3_3_70B_Instruct);
     } else {
       throw new Error("Please use V2 API key to use ChatAgent");
     }

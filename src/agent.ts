@@ -32,7 +32,7 @@ class GameAgent implements IGameAgent {
   }
 
   constructor(apiKey: string, options: IGameAgent) {
-    const llmModel = options.llmModel || LLMModel.Llama_3_1_405B_Instruct;
+    const llmModel = options.llmModel || LLMModel.Llama_3_3_70B_Instruct;
 
     this.gameClient = apiKey.startsWith("apt-")
       ? new GameClientV2(apiKey, llmModel)
