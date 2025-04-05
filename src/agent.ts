@@ -11,6 +11,8 @@ interface IGameAgent {
   workers: GameWorker[];
   getAgentState?: () => Promise<Record<string, any>>;
   llmModel?: LLMModel | string;
+  llmModelBaseUrl?: string;
+  llmModelApiKey?: string;
 }
 
 class GameAgent implements IGameAgent {
@@ -32,10 +34,23 @@ class GameAgent implements IGameAgent {
   }
 
   constructor(apiKey: string, options: IGameAgent) {
-    const llmModel = options.llmModel || LLMModel.Llama_3_3_70B_Instruct;
+    const llmModel = options.llmModel || LLMModel.Llama_3_1_405B_Instruct;
+
+    const llmModelBaseUrl = options.llmModelBaseUrl || "";
+    const llmModelApiKey = options.llmModelApiKey || "";
+
+    // If custom model URL is provided, require API key
+    if (options.llmModelBaseUrl || options.llmModelApiKey) {
+      if (!options.llmModelBaseUrl || !options.llmModelApiKey) {
+        throw new Error(
+          "Both llmModelBaseUrl and llmModelApiKey must be provided together"
+        );
+      }
+    }
+
 
     this.gameClient = apiKey.startsWith("apt-")
-      ? new GameClientV2(apiKey, llmModel)
+      ? new GameClientV2(apiKey, llmModel, llmModelBaseUrl, llmModelApiKey)
       : new GameClient(apiKey, llmModel);
     this.workerId = options.workers[0].id;
 
