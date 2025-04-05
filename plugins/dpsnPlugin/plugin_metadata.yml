@@ -12,6 +12,6 @@ detailed_description: 'This plugin allows Virtuals Protocol agents to connect to
 plugin_logo_url: 'https://pbs.twimg.com/profile_images/1832068773064355840/tUbNKURh_400x400.jpg' # URL to the plugin logo (512x512 recommended) (if any or fallback to logo_url)
 
 # Contact & Support
-x_account_handle: 'https://x.com/DPSN_org' # X (formerly known as Twitter) account handle (ie: @GAME_Virtuals)
+x_account_handle: '@DPSN_org' # X (formerly known as Twitter) account handle (ie: @GAME_Virtuals)
 support_contact: 'sanil@dpsn.org' # Email or Slack/Discord link for user support
 community_url: 'https://t.me/dpsn_dev' # Forum or community link (if any)
