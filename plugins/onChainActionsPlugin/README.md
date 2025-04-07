@@ -7,6 +7,9 @@ Supports:
 - Any wallet type, from key pairs to smart wallets from Crossmint, etc.
 - More than +200 onchain tools from the GOAT SDK, [see all available tools here](https://ohmygoat.dev/chains-wallets-plugins#plugins)
 
+Are you part of a startup agent team building with Virtuals?
+You may be eligible for free credits through Crossmint's Startup Program! [Apply now](https://www.crossmint.com/startup-program) to unlock exclusive startup benefits — and don’t forget to mention you’re part of a startup building with Virtuals when you get in touch.
+
 ## Installation
 
 To install the plugin, use npm or yarn:
