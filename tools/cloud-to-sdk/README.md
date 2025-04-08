@@ -19,8 +19,12 @@ If you have an existing GAME configuration JSON file from the cloud platform, yo
 
 ## Usage
 
-1. Place your GAME cloud JSON file in the tools/cloud-to-sdk directory
-2. Run the conversion tool with the following command:
+1. Go to your GAME Cloud page, and click on the "Export Agent" button to download the JSON file
+
+<img src="../../docs/imgs/game-cloud-json.png" width="400" alt="Export JSON">
+
+2. Place your GAME cloud JSON file in the tools/cloud-to-sdk directory
+3. Run the conversion tool with the following command:
    npm run cloud-to-sdk -- <your_json_file>
 
 This will create an `output` directory containing:
