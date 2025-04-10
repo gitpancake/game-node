@@ -118,6 +118,7 @@ import {
                 headers: {
                   Accept: "application/json",
                   "Content-Type": "application/json",
+                  "x-app-id": "virtuals-plugin",
                 },
               }
             );
@@ -237,6 +238,7 @@ import {
                 headers: {
                   Accept: "application/json",
                   "Content-Type": "application/json",
+                  "x-app-id": "virtuals-plugin",
                 },
               }
             );
@@ -335,6 +337,7 @@ import {
                 headers: {
                   Accept: "application/json",
                   "Content-Type": "application/json",
+                  "x-app-id": "virtuals-plugin",
                 },
               }
             );
@@ -456,6 +459,7 @@ import {
                 headers: {
                   Accept: "application/json",
                   "Content-Type": "application/json",
+                  "x-app-id": "virtuals-plugin",
                 },
               }
             );
@@ -562,6 +566,7 @@ import {
                 headers: {
                   Accept: "application/json",
                   "Content-Type": "application/json",
+                  "x-app-id": "virtuals-plugin",
                 },
               }
             );
