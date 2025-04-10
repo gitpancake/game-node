@@ -12,7 +12,7 @@ The **Alchemy Plugin** provides a set of functions to retrieve on-chain data fro
 
 ## Installation
 
-The plugin comes in the `plugins` directory at the root of `game-node` official repo.
+The plugin comes in the `plugins` directory at the root of `game-node` official repo. You'll need your `ALCHEMY_API_KEY` to use it which you can get by [creating your free alchemy account](https://bit.ly/42Emg95). You'll also need your `VIRTUALS_API_TOKEN` which you can get from the [G.A.M.E console](https://console.game.virtuals.io/projects). Add these variables to your `.env` file.
 
 ## Usage
 
@@ -23,7 +23,6 @@ All you need to do is run these commands at the root of `alchemyPlugin`:
 - `npm install`
 - `npm run build`
 - `node dist/example.js`
-
 
 ## Development
 

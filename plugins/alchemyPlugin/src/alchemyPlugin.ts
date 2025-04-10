@@ -55,7 +55,7 @@ import {
           {
             name: "networks",
             description:
-              'Array of networks to query the transaction history on (e.g., ["eth-mainnet", "base-mainnet"]). Defaults to ["eth-mainnet"] if not provided.',
+              'Array of networks to query the transaction history on (e.g., ["eth-mainnet", "base-mainnet"]). Defaults to ["eth-mainnet"] if not provided. Currently only supports eth-mainnet and base-mainnet.',
             type: "array",
           },
           {
