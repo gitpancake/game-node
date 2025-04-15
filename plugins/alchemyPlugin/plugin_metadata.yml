@@ -1,0 +1,23 @@
+# General Information
+plugin_name: "Alchemy Plugin"
+author: "Alchemy"
+logo_url: "https://bit.ly/alchemy-logo"
+release_date: "2025-04"
+
+# Description
+short_description: "The Alchemy Plugin provides a set of functions to retrieve on-chain data from the Alchemy API giving your agent the power to work with web3 data."      # One-liner description for listings
+detailed_description: "The Alchemy Plugin provides a set of functions to retrieve on-chain data from the Alchemy API giving your agent the power to work with web3 data. With this plugin, you can fetch portfolio data—including transaction history, token details, NFT information, and NFT contracts—by querying wallet addresses across various supported networks."   # Full description with features and benefits
+
+# Media & Assets
+plugin_logo_url: "https://bit.ly/alchemy-logo"
+screenshots:
+  - ""
+  - ""
+demo_video_url: ""
+documentation_url: ""
+changelog_url: ""
+
+# Contact & Support
+x_account_handle: "@Alchemy"
+support_contact: "https://www.alchemy.com/support"
+community_url: "https://alchemy.com/discord"
