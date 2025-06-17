@@ -2,6 +2,27 @@
 
 This plugin allows you to integrate Twitter functionalities into your Virtuals Game. With this plugin, you can post tweets, reply to tweets, like tweets, and more.
 
+# Twitter Plugin for GAME SDK
+
+The **Twitter Plugin** provides a lightweight interface for integrating Twitter (X) functionality into your GAME SDK agents. Built on top of [`virtuals_tweepy`](https://pypi.org/project/virtuals-tweepy/) by the Virtuals team — a maintained fork of [`Tweepy`](https://pypi.org/project/tweepy/)) — this plugin lets you easily post tweets, fetch data, and execute workflows through agent logic.
+
+## 📜 GAME X API Usage Terms & Rules
+By using our GAME API, you agree to the [Terms of Use](https://virtualsprotocol.notion.site/Terms-of-Use-2152d2a429e980f09a74c85c0a5974c4?source=copy_link) and [GAME X API Terms](https://virtualsprotocol.notion.site/Agents-on-X-Rulebook-1972d2a429e980ddaa85da3c903afade?pvs=74).
+
+## 🚀 API Access Tiers
+Virtuals sponsors the community with a **Twitter Enterprise API access plan**, using OAuth 2.0 with PKCE. This provides:
+
+### Tier 1 — Default
+- Higher rate limits: **50 calls / 5 minutes**
+- Smoother onboarding
+- Free usage via your `GAME_API_KEY`
+
+### Tier 2 — Elevated
+- Even higher rate limits
+- Requires approval from the Virtuals team. Request access via Discord → @virtualsio
+
+---
+
 ## Installation
 
 To install the plugin, use npm or yarn:
@@ -26,7 +47,7 @@ First, import the `TwitterPlugin` class from the plugin:
 import TwitterPlugin from "@virtuals-protocol/game-twitter-plugin";
 ```
 
-1. **Game Twitter Client**: This client is designed specifically for integration with the Virtuals Game environment. It provides seamless interaction with the game and allows for enhanced functionalities tailored to game-specific requirements.
+**Game Twitter Client**: This client is designed specifically for integration with the Virtuals Game environment. It provides seamless interaction with the game and allows for enhanced functionalities tailored to game-specific requirements.
 
    ```typescript
    import { TwitterApi } from "@virtuals-protocol/game-twitter-node";
@@ -62,19 +83,6 @@ import TwitterPlugin from "@virtuals-protocol/game-twitter-plugin";
    ```
    Authenticated! Here's your access token:
    apx-613f64069424d88c6fbf2e75c0c80a34
-   ```
-
-2. **Native Twitter Client**: This client is a more general-purpose Twitter client that can be used outside of the game context. It provides standard Twitter functionalities and can be used in various applications.
-
-   ```typescript
-   import { TwitterApi } from "@virtuals-protocol/game-twitter-node";
-
-   const nativeTwitterClient = new TwitterApi({
-     appKey: "your_api_key",
-     appSecret: "your_api_secret_key",
-     accessToken: "your_access_token",
-     accessTokenSecret: "your_access_token_secret",
-   });
    ```
 
 ### Creating a Worker
@@ -148,7 +156,7 @@ Use the built-in functions as **references** for creating your own!
 
 ## Manual Usage with Twitter Clients
 
-If you prefer direct control or are not using GameFunction-based execution, you can use the `GameTwitterClient` or `TwitterClient` directly:
+If you prefer direct control or are not using GameFunction-based execution, you can use the `GameTwitterClient` directly:
 
 ```typescript
 const gameTwitterClient = new GameTwitterClient({
@@ -226,7 +234,7 @@ export const likeRecentHashtagTweet = (client: TwitterApi) =>
 
 - The TwitterPlugin provides a set of default GameFunctions to get started fast.
 - These defaults are optional — you can fully customize or replace them.
-- Use `GameTwitterClient` or `TwitterClient` directly if you need fine-grained control.
+- Use `GameTwitterClient` directly if you need fine-grained control.
 - Reference the source to write your own GameFunctions tailored to your agent’s purpose.
 
 ## License
