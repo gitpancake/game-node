@@ -19,7 +19,7 @@ Virtuals sponsors the community with a **Twitter Enterprise API access plan**, u
 
 ### Tier 2 — Elevated
 - Even higher rate limits
-- Requires approval of the Virtuals team. Request access via Discord → @virtualsio
+- Requires approval from the Virtuals team. Request access via Discord → @virtualsio
 
 ---
 
