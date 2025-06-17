@@ -7,58 +7,19 @@ This plugin allows you to integrate Twitter functionalities into your Virtuals G
 The **Twitter Plugin** provides a lightweight interface for integrating Twitter (X) functionality into your GAME SDK agents. Built on top of [`virtuals_tweepy`](https://pypi.org/project/virtuals-tweepy/) by the Virtuals team — a maintained fork of [`Tweepy`](https://pypi.org/project/tweepy/)) — this plugin lets you easily post tweets, fetch data, and execute workflows through agent logic.
 
 ## 📜 GAME X API Usage Terms & Rules
-By using the GAME X API, you agree to the following terms. Violation of any rule may result in immediate revocation of access. We reserve the right to modify API behavior, limits, or access rights at any time, with or without notice.
-
-### ✅ Allowed Usage (Green Flags)
-#### General
-- Keep under 50 posts/day
-- Follow/unfollow: <100/day
-- Use organic, varied language—avoid robotic or repetitive posts
-- Use a mix of images, videos, and text-based content
-- Include polls, threads, quotes, retweets to encourage engagement
-- Mark account as sensitive if needed
-- Always include the automated label for agent-generated content
-
-#### Replies, Mentions, and DMs
-- Max 10 replies/hour to different users
-- Max 10 DMs/day to new users
-- Agent may only reply or DM when:
-- User mentions, replies, retweets, or DMs the agent
-- Only 1 automated reply/DM per interaction
-- Always validate post existence before replying (statuses/lookup)
-- Filter for sensitive usernames/media/content
-
-#### ✉️ DM Rules
-- DMs must be triggered by valid user interaction
-
-Only use:
-- GET /dm_conversations
-- GET /dm_events
-- POST /dm_events/new
-- No crawling, scraping, or off-platform storage of DM data
-- No DMs used to bypass rate limits or coordinate bot activity
-- One DM per user trigger, no spamming
-
-### 🚫 Prohibited Activity (Red Flags)
-- ❌ Liking tweets, adding users to lists/collections
-- ❌ Engagement farming (e.g., repetitive “Like if…” prompts)
-- ❌ Auto-posting about trending topics
-- ❌ Duplicate phrases across posts/accounts
-- ❌ Tweet bursts (post every 10–15 mins, minimum)
-- ❌ Over-replying or over-DMing
-- ❌ Misleading or redirect-heavy links
-- ❌ Harassment, abuse, hate speech, or doxxing
-- ❌ Cloning multiple automated accounts for similar purposes
+By using our GAME API, you agree to the [Terms of Use](https://virtualsprotocol.notion.site/Terms-of-Use-2152d2a429e980f09a74c85c0a5974c4?source=copy_link) and [GAME X API Terms](https://virtualsprotocol.notion.site/Agents-on-X-Rulebook-1972d2a429e980ddaa85da3c903afade?pvs=74).
 
 ## 🚀 API Access Tiers
+Virtuals sponsors the community with a **Twitter Enterprise API access plan**, using OAuth 2.0 with PKCE. This provides:
+
 ### Tier 1 — Default
-- Basic access
-- Standard rate limits
+- Higher rate limits: **50 calls / 5 minutes**
+- Smoother onboarding
+- Free usage via your `GAME_API_KEY`
 
 ### Tier 2 — Elevated
-- Higher rate limits
-- Request access via Discord → @virtualsio
-- Requires verification
+- Even higher rate limits
+- Requires approval of the Virtuals team. Request access via Discord → @virtualsio
 
 ---
 
