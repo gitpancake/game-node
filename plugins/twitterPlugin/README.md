@@ -4,7 +4,7 @@ This plugin allows you to integrate Twitter functionalities into your Virtuals G
 
 # Twitter Plugin for GAME SDK
 
-The **Twitter Plugin** provides a lightweight interface for integrating Twitter (X) functionality into your GAME SDK agents. Built on top of [`virtuals_tweepy`](https://pypi.org/project/virtuals-tweepy/) by the Virtuals team — a maintained fork of [`Tweepy`](https://pypi.org/project/tweepy/)) — this plugin lets you easily post tweets, fetch data, and execute workflows through agent logic.
+The **Twitter Plugin** provides a lightweight interface for integrating Twitter (X) functionality into your GAME SDK agents. Built on top of [`game-twitter-node`](https://www.npmjs.com/package/@virtuals-protocol/game-twitter-node) by the Virtuals team — a maintained fork of [`twitter-api-v2`](https://www.npmjs.com/package/twitter-api-v2)) — this plugin lets you easily post tweets, fetch data, and execute workflows through agent logic.
 
 ## 📜 GAME X API Usage Terms & Rules
 By using our GAME API, you agree to the [Terms of Use](https://virtualsprotocol.notion.site/Terms-of-Use-2152d2a429e980f09a74c85c0a5974c4?source=copy_link) and [GAME X API Terms](https://virtualsprotocol.notion.site/Agents-on-X-Rulebook-1972d2a429e980ddaa85da3c903afade?pvs=74).
