@@ -7,9 +7,10 @@ services:
     platform: linux/amd64
     environment:
       - API_KEY=
-      - WEATHER_API_KEY=
       - OPENAI_API_KEY=
       - OPENAI_BASE_URL=
+      - NEYNAR_API_KEY=
+      - FARCASTER_SIGNER_UUID=
       - botToken=
     volumes:
       - /var/run/tappd.sock:/var/run/tappd.sock
@@ -17,4 +18,4 @@ services:
     restart: always
 
 volumes:
-    virtuals:
+  virtuals:

@@ -7,11 +7,12 @@ services:
     platform: linux/amd64
     environment:
       - API_KEY=${API_KEY}
-      - WEATHER_API_KEY=${WEATHER_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - NEYNAR_API_KEY=${NEYNAR_API_KEY}
+      - FARCASTER_SIGNER_UUID=${FARCASTER_SIGNER_UUID}
     volumes:
       - virtuals:/app
     restart: always
 
 volumes:
-    virtuals:
+  virtuals:

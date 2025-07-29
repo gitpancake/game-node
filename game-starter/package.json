@@ -21,6 +21,7 @@
   "dependencies": {
     "@types/dotenv": "^6.1.1",
     "@virtuals-protocol/game": "^0.1.9",
+    "@neynar/nodejs-sdk": "^2.36.1",
     "dotenv": "^16.4.7",
     "openai": "^4.81.0"
   }
