@@ -1,5 +1,6 @@
 import { GameWorker } from "@virtuals-protocol/game";
 import {
+  analyzeAccountWithCastsFunction,
   analyzeAsciiArtFunction,
   analyzeBaseAccountFunction,
   analyzePredefinedBaseAccountsFunction,
@@ -35,5 +36,6 @@ export const activityRecommenderWorker = new GameWorker({
     followFarcasterAccountsFunction,
     analyzeBaseAccountFunction,
     analyzePredefinedBaseAccountsFunction,
+    analyzeAccountWithCastsFunction,
   ],
 });

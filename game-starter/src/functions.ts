@@ -1300,3 +1300,305 @@ function generateAsciiText(topic: string): string {
 
   return `Generated ASCII Text (${topic}):\n\n${asciiSentence}\n\n${englishTranslation}`;
 }
+
+// Function to analyze account's recent casts for relevance scoring
+async function analyzeAccountCasts(fid: number, maxCasts: number = 100): Promise<{ relevanceScore: number; analysis: string }> {
+  try {
+    // Get recent casts from the account
+    const castsResponse = await neynarClient.fetchCastsForUser({
+      fid: fid,
+      limit: maxCasts,
+    });
+
+    if (!castsResponse.casts || castsResponse.casts.length === 0) {
+      return { relevanceScore: 0.1, analysis: "No casts found" };
+    }
+
+    let totalScore = 0;
+    let relevantCasts = 0;
+    let totalCasts = castsResponse.casts.length;
+    const analysis = [];
+
+    for (const cast of castsResponse.casts) {
+      const castText = cast.text?.toLowerCase() || "";
+      let castScore = 0;
+
+      // ASCII art related keywords
+      const asciiKeywords = [
+        "ascii",
+        "art",
+        "character",
+        "symbol",
+        "pixel",
+        "block",
+        "line",
+        "drawing",
+        "creative",
+        "code",
+        "digital",
+        "pattern",
+        "geometric",
+        "mathematical",
+        "constraint",
+        "oulipo",
+        "perec",
+        "experimental",
+        "text art",
+        "ascii art",
+      ];
+
+      // Check for ASCII art content
+      for (const keyword of asciiKeywords) {
+        if (castText.includes(keyword)) {
+          castScore += 0.1;
+        }
+      }
+
+      // Check for actual ASCII art patterns in the text
+      const asciiPatterns = [
+        /[┌┐└┘├┤┬┴┼─│]/g, // Box drawing characters
+        /[█▓▒░]/g, // Block characters
+        /[▀▄▌▐]/g, // Half blocks
+        /[╔╗╚╝╠╣╦╩╬═║]/g, // Double line box
+        /[╭╮╯╰├┤┬┴┼─│]/g, // Rounded corners
+        /[◆◇◈]/g, // Diamond shapes
+        /[★☆]/g, // Star shapes
+        /[●○]/g, // Circle shapes
+        /[▲△]/g, // Triangle shapes
+        /[■□]/g, // Square shapes
+      ];
+
+      for (const pattern of asciiPatterns) {
+        const matches = castText.match(pattern);
+        if (matches && matches.length > 0) {
+          castScore += 0.2 * Math.min(matches.length, 5); // Cap at 5 matches
+        }
+      }
+
+      // Check for code blocks or technical content
+      if (castText.includes("```") || castText.includes("function") || castText.includes("const ")) {
+        castScore += 0.15;
+      }
+
+      // Check for creative/artistic language
+      const creativeWords = ["create", "design", "build", "make", "art", "creative", "experiment", "explore"];
+      for (const word of creativeWords) {
+        if (castText.includes(word)) {
+          castScore += 0.05;
+        }
+      }
+
+      // Penalize spam or irrelevant content
+      const spamWords = ["buy", "sell", "promote", "advertisement", "sponsored", "click here"];
+      for (const word of spamWords) {
+        if (castText.includes(word)) {
+          castScore -= 0.1;
+        }
+      }
+
+      // Cap individual cast score
+      castScore = Math.max(0, Math.min(1, castScore));
+
+      totalScore += castScore;
+      if (castScore > 0.3) {
+        relevantCasts++;
+      }
+
+      // Add to analysis if it's a high-scoring cast
+      if (castScore > 0.5) {
+        analysis.push(`High-relevance cast: "${castText.substring(0, 100)}..." (score: ${castScore.toFixed(2)})`);
+      }
+    }
+
+    // Calculate final relevance score
+    const averageScore = totalScore / totalCasts;
+    const relevanceRatio = relevantCasts / totalCasts;
+    const finalScore = averageScore * 0.6 + relevanceRatio * 0.4;
+
+    const summary = `Analyzed ${totalCasts} casts. ${relevantCasts} relevant casts found. Average score: ${averageScore.toFixed(2)}, Relevance ratio: ${relevanceRatio.toFixed(2)}`;
+
+    return {
+      relevanceScore: Math.max(0, Math.min(1, finalScore)),
+      analysis: `${summary}\n\n${analysis.slice(0, 3).join("\n")}`,
+    };
+  } catch (error) {
+    console.error(`Error analyzing casts for FID ${fid}:`, error);
+    return { relevanceScore: 0.1, analysis: "Error analyzing casts" };
+  }
+}
+
+// Enhanced account analysis with cast analysis and snowball sampling
+export const analyzeAccountWithCastsFunction = new GameFunction({
+  name: "analyze_account_with_casts",
+  description:
+    "Analyze a Farcaster account by examining their recent casts and generate a relevance score. If the score is above a threshold, follow the account and sample their followers for further investigation.",
+  args: [
+    { name: "username", description: "The username of the account to analyze" },
+    { name: "min_score_to_follow", description: "Minimum relevance score to follow the account (0.0-1.0)", default: "0.6" },
+    { name: "sample_size", description: "Number of followers to sample for investigation", default: "10" },
+    { name: "max_followers_to_check", description: "Maximum number of followers to check if initial sample doesn't yield good results", default: "50" },
+  ] as const,
+  executable: async (args, logger) => {
+    try {
+      const username = args.username;
+      if (!username) {
+        return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, "Username is required");
+      }
+
+      const minScoreToFollow = parseFloat(args.min_score_to_follow || "0.6");
+      const sampleSize = parseInt(args.sample_size || "10");
+      const maxFollowersToCheck = parseInt(args.max_followers_to_check || "50");
+
+      logger(`🔍 Analyzing account @${username} with enhanced cast analysis...`);
+
+      // First, get the user's FID
+      const userResponse = await neynarClient.lookupUserByUsername({
+        username: username,
+      });
+
+      if (!userResponse.user) {
+        return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, `User @${username} not found`);
+      }
+
+      const user = userResponse.user;
+      const fid = user.fid;
+
+      logger(`📊 Found user @${username} (FID: ${fid})`);
+
+      // Analyze the account's recent casts
+      logger(`📝 Analyzing recent casts for relevance...`);
+      const castAnalysis = await analyzeAccountCasts(fid, 100);
+
+      logger(`📈 Cast analysis score: ${castAnalysis.relevanceScore.toFixed(3)}`);
+      logger(`📋 Cast analysis: ${castAnalysis.analysis}`);
+
+      let followDecision = "not_followed";
+      let sampledFollowers: any[] = [];
+
+      // Decide whether to follow based on cast analysis
+      if (castAnalysis.relevanceScore >= minScoreToFollow) {
+        logger(`✅ Account meets follow criteria (score: ${castAnalysis.relevanceScore.toFixed(3)} >= ${minScoreToFollow})`);
+
+        // Follow the account
+        try {
+          await neynarClient.followUser({
+            signerUuid: process.env.FARCASTER_SIGNER_UUID!,
+            targetFids: [fid],
+          });
+
+          logger(`👥 Successfully followed @${username}`);
+          followDecision = "followed";
+
+          // Update following stats
+          personalStyle.followingStats.totalFollowed++;
+          personalStyle.followingStats.lastFollowTime = new Date().toISOString();
+
+          // Now sample their followers for investigation
+          logger(`🔍 Sampling ${sampleSize} followers for investigation...`);
+          sampledFollowers = await sampleFollowersForInvestigation(fid, sampleSize, maxFollowersToCheck);
+        } catch (followError) {
+          logger(`❌ Error following @${username}: ${followError}`);
+          followDecision = "follow_failed";
+        }
+      } else {
+        logger(`❌ Account does not meet follow criteria (score: ${castAnalysis.relevanceScore.toFixed(3)} < ${minScoreToFollow})`);
+      }
+
+      // Add to discovered accounts
+      const accountInfo = {
+        username: username,
+        displayName: user.display_name || "",
+        bio: user.profile?.bio?.text || "",
+        followerCount: user.follower_count || 0,
+        relevanceScore: castAnalysis.relevanceScore,
+        castAnalysis: castAnalysis.analysis,
+        followDecision: followDecision,
+        discoveredAt: new Date().toISOString(),
+        source: "enhanced_cast_analysis",
+      };
+
+      personalStyle.discoveredAccounts.push(accountInfo);
+
+      // Auto-save memory
+      checkAutoSave();
+
+      const result = `Analysis complete for @${username}:
+      
+📊 Cast Relevance Score: ${castAnalysis.relevanceScore.toFixed(3)}
+📋 Follow Decision: ${followDecision}
+🎯 Sampled Followers: ${sampledFollowers.length}
+📝 Cast Analysis: ${castAnalysis.analysis}`;
+
+      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, result);
+    } catch (error) {
+      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, `Error analyzing account: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  },
+});
+
+// Helper function to sample followers for investigation
+async function sampleFollowersForInvestigation(targetFid: number, sampleSize: number, maxFollowersToCheck: number): Promise<any[]> {
+  const sampledFollowers: any[] = [];
+  let checkedCount = 0;
+
+  try {
+    // Get followers in batches
+    while (sampledFollowers.length < sampleSize && checkedCount < maxFollowersToCheck) {
+      const batchSize = Math.min(25, maxFollowersToCheck - checkedCount);
+
+      const followersResponse = await neynarClient.fetchUserFollowers({
+        fid: targetFid,
+        limit: batchSize,
+      });
+
+      if (!followersResponse.users || followersResponse.users.length === 0) {
+        break;
+      }
+
+      // Analyze each follower in this batch
+      for (const follower of followersResponse.users) {
+        checkedCount++;
+
+        // Skip if we already have enough samples
+        if (sampledFollowers.length >= sampleSize) {
+          break;
+        }
+
+        // Quick relevance check based on profile
+        const quickRelevance = analyzeUserRelevance(follower, "ascii art creative coding digital art");
+
+        // If this follower seems relevant, add them to our investigation list
+        if (quickRelevance > 0.4) {
+          const followerInfo = {
+            username: (follower as any).username || "",
+            displayName: (follower as any).display_name || "",
+            bio: (follower as any).profile?.bio?.text || "",
+            followerCount: (follower as any).follower_count || 0,
+            relevanceScore: quickRelevance,
+            relationship: "follower_of_followed",
+            discoveredAt: new Date().toISOString(),
+            source: "snowball_sampling",
+          };
+
+          sampledFollowers.push(followerInfo);
+
+          // Also add to discovered accounts for future investigation
+          personalStyle.discoveredAccounts.push(followerInfo);
+
+          console.log(`🎯 Found relevant follower: @${followerInfo.username} (score: ${quickRelevance.toFixed(3)})`);
+        }
+      }
+
+      // If we didn't find enough relevant followers in this batch, continue to next batch
+      if (followersResponse.users.length < batchSize) {
+        break; // No more followers to check
+      }
+    }
+
+    console.log(`📊 Sampled ${sampledFollowers.length} relevant followers from ${checkedCount} checked`);
+  } catch (error) {
+    console.error(`❌ Error sampling followers:`, error);
+  }
+
+  return sampledFollowers;
+}
