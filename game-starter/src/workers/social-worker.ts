@@ -1,0 +1,33 @@
+import { GameWorker } from "@virtuals-protocol/game";
+import {
+  analyzeAccountWithCastsFunction,
+  analyzeBaseAccountFunction,
+  analyzePredefinedBaseAccountsFunction,
+  browseAndInteractFunction,
+  castToFarcasterFunction,
+  commentOnCastFunction,
+  crawlFarcasterAccountsFunction,
+  followFarcasterAccountsFunction,
+  likeCastFunction,
+  shareThoughtsFunction,
+} from "../functions";
+
+// Social Worker for Farcaster interactions and community building
+export const socialWorker = new GameWorker({
+  id: "social_worker",
+  name: "Social Worker",
+  description:
+    "Specialized in Farcaster social interactions and community building. This worker handles all social media activities including sharing thoughts and insights, casting ASCII art and research findings, discovering and following relevant accounts, analyzing inspiration accounts, liking and commenting on relevant casts, browsing and interacting with the community, and building a network of ASCII art enthusiasts. Focuses on engagement, community growth, and social presence in the Farcaster ecosystem.",
+  functions: [
+    shareThoughtsFunction,
+    castToFarcasterFunction,
+    crawlFarcasterAccountsFunction,
+    followFarcasterAccountsFunction,
+    analyzeBaseAccountFunction,
+    analyzePredefinedBaseAccountsFunction,
+    analyzeAccountWithCastsFunction,
+    likeCastFunction,
+    commentOnCastFunction,
+    browseAndInteractFunction,
+  ],
+});

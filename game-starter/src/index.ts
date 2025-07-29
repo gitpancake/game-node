@@ -31,29 +31,80 @@ process.on("SIGQUIT", handleGracefulShutdown);
 
 async function main() {
   try {
-    // Initialize the agent
-    await activity_agent.init();
+    // Initialize the agent with retry logic for rate limiting
+    let initRetries = 0;
+    const maxInitRetries = 5;
+
+    while (initRetries < maxInitRetries) {
+      try {
+        console.log(`🔄 Attempting to initialize agent (attempt ${initRetries + 1}/${maxInitRetries})...`);
+        await activity_agent.init();
+        break; // Success, exit the retry loop
+      } catch (error: any) {
+        initRetries++;
+
+        // Handle rate limiting specifically
+        if (error?.response?.status === 429) {
+          const retryAfter = error.response.headers["retry-after"];
+          const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 300000; // Default 5 minutes
+
+          console.log(`🚫 Rate limit hit during initialization! Waiting ${waitTime / 1000} seconds before retry...`);
+          console.log(`⏰ Next attempt at: ${new Date(Date.now() + waitTime).toLocaleTimeString()}`);
+
+          if (initRetries < maxInitRetries) {
+            await new Promise((resolve) => setTimeout(resolve, waitTime));
+            continue;
+          } else {
+            console.error("❌ Max initialization retries reached. Exiting...");
+            process.exit(1);
+          }
+        }
+
+        // Handle other initialization errors
+        console.error(`❌ Initialization error (attempt ${initRetries}/${maxInitRetries}):`, error.message);
+        if (initRetries >= maxInitRetries) {
+          console.error("❌ Max initialization retries reached. Exiting...");
+          process.exit(1);
+        }
+
+        // Wait before retrying other errors
+        await new Promise((resolve) => setTimeout(resolve, 10000));
+      }
+    }
 
     console.log("🎨 ASCII Art Enthusiast Agent Started!");
     console.log("Agent will share thoughts every 30 seconds and perform ASCII art activities.");
     console.log("Rate limiting enabled to prevent API throttling.");
     console.log("Press Ctrl+C to stop the agent.\n");
 
-    // Debug: Log available functions
-    console.log("🔧 Available Functions:");
-    console.log("- test_function: Simple test function");
-    console.log("- crawl_ascii_art: Search for ASCII art examples");
-    console.log("- share_thoughts: Share insights about ASCII art");
-    console.log("- generate_ascii_art: Create original ASCII art");
-    console.log("- analyze_ascii_art: Analyze and learn from ASCII art");
-    console.log("- cast_to_farcaster: Share ASCII art on Farcaster");
-    console.log("- research_oulipo: Research Georges Perec and Oulipo movement");
-    console.log("- develop_ascii_language: Create ASCII language words");
-    console.log("- translate_ascii_language: Translate between ASCII and English");
-    console.log("- crawl_farcaster_accounts: Discover relevant Farcaster accounts");
-    console.log("- follow_farcaster_accounts: Follow discovered accounts");
-    console.log("- analyze_base_account: Analyze specific account as inspiration");
-    console.log("- analyze_predefined_base_accounts: Analyze kimasendorf and other predefined accounts\n");
+    // Debug: Log available workers and their functions
+    console.log("🔧 Available Workers:");
+    console.log("📚 Research Worker:");
+    console.log("  - research_oulipo: Research Georges Perec and Oulipo movement");
+    console.log("");
+    console.log("🎨 Creative Worker:");
+    console.log("  - crawl_ascii_art: Search for ASCII art examples");
+    console.log("  - generate_ascii_art: Create original ASCII art");
+    console.log("  - analyze_ascii_art: Analyze and learn from ASCII art");
+    console.log("");
+    console.log("📱 Social Worker:");
+    console.log("  - share_thoughts: Share insights about ASCII art");
+    console.log("  - cast_to_farcaster: Share ASCII art on Farcaster");
+    console.log("  - crawl_farcaster_accounts: Discover relevant Farcaster accounts");
+    console.log("  - follow_farcaster_accounts: Follow discovered accounts");
+    console.log("  - analyze_base_account: Analyze specific account as inspiration");
+    console.log("  - analyze_predefined_base_accounts: Analyze kimasendorf and other predefined accounts");
+    console.log("  - analyze_account_with_casts: Enhanced account analysis with cast examination");
+    console.log("  - like_cast: Like specific casts on Farcaster");
+    console.log("  - comment_on_cast: Comment on specific casts");
+    console.log("  - browse_and_interact: Browse and interact with relevant casts");
+    console.log("");
+    console.log("🔤 Language Worker:");
+    console.log("  - develop_ascii_language: Create ASCII language words");
+    console.log("  - translate_ascii_language: Translate between ASCII and English");
+    console.log("");
+    console.log("⚙️ System Worker:");
+    console.log("  - test_function: Simple test function\n");
 
     // Display cast history on startup
     displayCastHistory();

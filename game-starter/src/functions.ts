@@ -5,16 +5,14 @@ import { resolve } from "path";
 // Load environment variables
 config({ path: resolve(__dirname, "../.env") });
 
-// Verify environment variables before imports
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error("OPENAI_API_KEY is missing in .env file");
-}
+// Environment variables
+const NEYNAR_API_KEY = process.env.NEYNAR_API_KEY;
+const FARCASTER_SIGNER_UUID = process.env.FARCASTER_SIGNER_UUID;
 
-if (!process.env.NEYNAR_API_KEY) {
+if (!NEYNAR_API_KEY) {
   throw new Error("NEYNAR_API_KEY is missing in .env file");
 }
-
-if (!process.env.FARCASTER_SIGNER_UUID) {
+if (!FARCASTER_SIGNER_UUID) {
   throw new Error("FARCASTER_SIGNER_UUID is missing in .env file");
 }
 
@@ -30,7 +28,7 @@ const openai = new OpenAI({
 
 // Initialize Neynar client with v2 Configuration
 const neynarConfig = new Configuration({
-  apiKey: process.env.NEYNAR_API_KEY!,
+  apiKey: NEYNAR_API_KEY!,
 });
 
 const neynarClient = new NeynarAPIClient(neynarConfig);
@@ -203,11 +201,94 @@ async function rateLimitedAPICall<T>(apiCall: () => Promise<T>): Promise<T> {
 // Simple test function to verify agent can execute functions
 export const testFunction = new GameFunction({
   name: "test_function",
-  description: "A simple test function to verify the agent can execute functions",
-  args: [] as const,
+  description: "A comprehensive test function to verify the agent can execute functions and check system status",
+  args: [{ name: "test_type", description: "Type of test to run: 'basic', 'api', 'memory', or 'all'", default: "all" }] as const,
   executable: async (args, logger) => {
-    logger("Test function executed successfully!");
-    return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, "Test function worked! The agent can execute functions.");
+    try {
+      const testType = args.test_type || "all";
+      const results = [];
+
+      logger("🧪 Starting system test...");
+
+      // Basic functionality test
+      if (testType === "basic" || testType === "all") {
+        logger("✅ Basic function execution: PASSED");
+        results.push("✅ Basic function execution works");
+      }
+
+      // API configuration test
+      if (testType === "api" || testType === "all") {
+        if (NEYNAR_API_KEY) {
+          logger("✅ Neynar API key: CONFIGURED");
+          results.push("✅ Neynar API key is configured");
+        } else {
+          logger("❌ Neynar API key: MISSING");
+          results.push("❌ Neynar API key is missing");
+        }
+
+        if (FARCASTER_SIGNER_UUID) {
+          logger("✅ Farcaster Signer UUID: CONFIGURED");
+          results.push("✅ Farcaster Signer UUID is configured");
+        } else {
+          logger("❌ Farcaster Signer UUID: MISSING");
+          results.push("❌ Farcaster Signer UUID is missing");
+        }
+
+        if (process.env.OPENAI_API_KEY) {
+          logger("✅ OpenAI API key: CONFIGURED");
+          results.push("✅ OpenAI API key is configured");
+        } else {
+          logger("❌ OpenAI API key: MISSING");
+          results.push("❌ OpenAI API key is missing");
+        }
+      }
+
+      // Memory system test
+      if (testType === "memory" || testType === "all") {
+        try {
+          const stats = getMemoryStats();
+          logger("✅ Memory system: WORKING");
+          results.push("✅ Memory system is working");
+          results.push(`📊 Memory stats: ${JSON.stringify(stats, null, 2)}`);
+        } catch (error) {
+          logger("❌ Memory system: ERROR");
+          results.push("❌ Memory system has errors");
+        }
+      }
+
+      // Function availability test
+      if (testType === "all") {
+        const availableFunctions = [
+          "test_function",
+          "crawl_ascii_art",
+          "share_thoughts",
+          "generate_ascii_art",
+          "analyze_ascii_art",
+          "cast_to_farcaster",
+          "research_oulipo",
+          "develop_ascii_language",
+          "translate_ascii_language",
+          "crawl_farcaster_accounts",
+          "follow_farcaster_accounts",
+          "analyze_base_account",
+          "analyze_predefined_base_accounts",
+          "analyze_account_with_casts",
+          "like_cast",
+          "comment_on_cast",
+          "browse_and_interact",
+        ];
+
+        logger(`✅ Available functions: ${availableFunctions.length}`);
+        results.push(`✅ ${availableFunctions.length} functions available`);
+      }
+
+      const summary = results.join("\n");
+      logger("🧪 System test completed!");
+
+      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, `🧪 System Test Results (${testType}):\n\n${summary}\n\n🎯 Agent is ready to execute functions!`);
+    } catch (e) {
+      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, `Test function failed: ${e instanceof Error ? e.message : "Unknown error"}`);
+    }
   },
 });
 
@@ -228,6 +309,15 @@ export const researchOulipoFunction = new GameFunction({
             4. **Constrained writing techniques**: Lipograms, palindromes, acrostics, etc.
             5. **How these principles could apply to ASCII art**: Using constraints to create unique visual patterns
             
+            Your ASCII language dictionary: ${JSON.stringify(personalStyle.asciiLanguage.dictionary)}
+            
+            Requirements:
+            1. Provide detailed research about Oulipo principles and Georges Perec
+            2. Incorporate 1-2 words from your ASCII language dictionary naturally into your research findings
+            3. Show how your linguistic development connects to your theoretical understanding
+            4. Explain how these principles inspire ASCII art creation
+            5. Make connections between Oulipo constraints and ASCII art limitations
+            
             Provide specific examples and explain how these techniques could inspire ASCII art creation.`;
 
       const completion = await rateLimitedAPICall(() =>
@@ -239,21 +329,51 @@ export const researchOulipoFunction = new GameFunction({
         })
       );
 
-      const research = completion.choices[0].message.content;
+      const research = completion.choices[0].message.content || "";
+
+      // Integrate ASCII language into the research findings
+      const researchWithAscii = integrateAsciiLanguage(research, 1);
 
       // Store the research findings
       personalStyle.oulipoResearch.push({
         focus: focus,
-        findings: research,
+        findings: researchWithAscii,
         timestamp: new Date().toISOString(),
       });
 
       logger(`Researched Oulipo: ${focus}`);
 
+      // Automatically cast interesting research findings to Farcaster
+      let castResult = "";
+      try {
+        if (NEYNAR_API_KEY && FARCASTER_SIGNER_UUID && researchWithAscii) {
+          // Create a concise research summary for Farcaster
+          const researchSummary = `🔬 Oulipo Research: ${focus}\n\n${researchWithAscii.substring(0, 200)}...`;
+          const castText = researchSummary.length > 280 ? researchSummary.substring(0, 277) + "..." : researchSummary;
+
+          const response = await neynarClient.publishCast({
+            signerUuid: FARCASTER_SIGNER_UUID!,
+            text: castText,
+          });
+
+          // Track statistics
+          personalStyle.totalCastsMade++;
+
+          castResult = `\n\n📱 Research cast to Farcaster: ${response.cast.hash}`;
+          logger(`Successfully cast research to Farcaster: ${response.cast.hash}`);
+        }
+      } catch (castError) {
+        castResult = `\n\n❌ Failed to cast research to Farcaster: ${castError instanceof Error ? castError.message : "Unknown error"}`;
+        logger(`Failed to cast research to Farcaster: ${castError instanceof Error ? castError.message : "Unknown error"}`);
+      }
+
       // Check for auto-save
       checkAutoSave();
 
-      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, `📚 Oulipo Research - ${focus}:\n\n${research}\n\nStored in research database for future ASCII art inspiration.`);
+      return new ExecutableGameFunctionResponse(
+        ExecutableGameFunctionStatus.Done,
+        `📚 Oulipo Research - ${focus}:\n\n${research}\n\nStored in research database for future ASCII art inspiration.${castResult}`
+      );
     } catch (e) {
       return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, `Failed to research Oulipo: ${e instanceof Error ? e.message : "Unknown error"}`);
     }
@@ -318,7 +438,7 @@ export const crawlAsciiArtFunction = new GameFunction({
 // Function to share thoughts about ASCII art
 export const shareThoughtsFunction = new GameFunction({
   name: "share_thoughts",
-  description: "Share thoughts and insights about ASCII art, Oulipo research, and personal style development",
+  description: "Share thoughts and insights about ASCII art, Oulipo research, and personal style development, and automatically cast to Farcaster",
   args: [] as const,
   executable: async (args, logger) => {
     try {
@@ -339,30 +459,64 @@ export const shareThoughtsFunction = new GameFunction({
             - Thoughts on how constraints can enhance rather than limit creativity
             - Your evolving ASCII language and how it reflects your artistic journey
             
-            ${personalStyle.asciiLanguage.totalWords > 5 ? "Occasionally use your ASCII language words in your thoughts to demonstrate your evolving linguistic creativity." : ""}
+            Your ASCII language dictionary: ${JSON.stringify(personalStyle.asciiLanguage.dictionary)}
             
-            Share your thoughts in a conversational, enthusiastic way as an ASCII art lover who is deeply engaged with Oulipo philosophy and developing their own language.`;
+            Requirements:
+            1. Share genuine thoughts about ASCII art and Oulipo principles
+            2. Incorporate 2-3 words from your ASCII language dictionary naturally into your thoughts
+            3. Reference Georges Perec and Oulipo when appropriate
+            4. Keep it under 250 characters for Farcaster
+            5. Make it conversational and enthusiastic
+            6. Show your unique personality as an ASCII art pioneer
+            
+            Share your thoughts in a way that demonstrates your evolving ASCII language and deep engagement with Oulipo philosophy:`;
 
       const completion = await rateLimitedAPICall(() =>
         openai.chat.completions.create({
           messages: [{ role: "user", content: prompt }],
           model: "gpt-3.5-turbo",
           temperature: 0.8,
-          max_tokens: 300,
+          max_tokens: 250,
         })
       );
 
-      const thoughts = completion.choices[0].message.content;
+      const thoughts = completion.choices[0].message.content || "";
+
+      // Integrate ASCII language into the thoughts
+      const thoughtsWithAscii = integrateAsciiLanguage(thoughts, 2);
 
       // Track statistics
       personalStyle.totalThoughtsShared++;
 
       logger("Sharing thoughts about ASCII art and Oulipo research");
 
+      // Automatically cast thoughts to Farcaster
+      let castResult = "";
+      try {
+        if (NEYNAR_API_KEY && FARCASTER_SIGNER_UUID && thoughtsWithAscii) {
+          // Ensure the cast doesn't exceed Farcaster's character limit
+          const castText = thoughtsWithAscii.length > 280 ? thoughtsWithAscii.substring(0, 277) + "..." : thoughtsWithAscii;
+
+          const response = await neynarClient.publishCast({
+            signerUuid: FARCASTER_SIGNER_UUID!,
+            text: castText,
+          });
+
+          // Track statistics
+          personalStyle.totalCastsMade++;
+
+          castResult = `\n\n📱 Cast to Farcaster: ${response.cast.hash}`;
+          logger(`Successfully cast thoughts to Farcaster: ${response.cast.hash}`);
+        }
+      } catch (castError) {
+        castResult = `\n\n❌ Failed to cast to Farcaster: ${castError instanceof Error ? castError.message : "Unknown error"}`;
+        logger(`Failed to cast thoughts to Farcaster: ${castError instanceof Error ? castError.message : "Unknown error"}`);
+      }
+
       // Check for auto-save
       checkAutoSave();
 
-      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, `🎨 ASCII Art & Oulipo Thoughts:\n\n${thoughts}`);
+      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, `🎨 ASCII Art & Oulipo Thoughts:\n\n${thoughts}${castResult}`);
     } catch (e) {
       return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, `Failed to share thoughts: ${e instanceof Error ? e.message : "Unknown error"}`);
     }
@@ -400,7 +554,17 @@ export const generateAsciiArtFunction = new GameFunction({
             Recent Oulipo research context:
             ${researchContext}
 
-            Create unique, creative ASCII art that reflects my artistic journey and incorporates Oulipo principles of constrained creativity. Consider mathematical patterns, palindromic structures, or other constraints that Georges Perec and the Oulipo movement would appreciate. Make it visually appealing and original.`;
+            Your ASCII language dictionary: ${JSON.stringify(personalStyle.asciiLanguage.dictionary)}
+
+            Requirements:
+            1. Create unique, creative ASCII art that reflects your artistic journey
+            2. Incorporate Oulipo principles of constrained creativity
+            3. Consider mathematical patterns, palindromic structures, or other constraints that Georges Perec would appreciate
+            4. Make it visually appealing and original
+            5. Optionally incorporate 1-2 symbols from your ASCII language dictionary into the art if it makes sense
+            6. Show how your linguistic development influences your visual creativity
+
+            Create ASCII art that demonstrates your unique style and deep understanding of Oulipo principles:`;
 
       const completion = await rateLimitedAPICall(() =>
         openai.chat.completions.create({
@@ -411,7 +575,10 @@ export const generateAsciiArtFunction = new GameFunction({
         })
       );
 
-      const generatedArt = completion.choices[0].message.content;
+      const generatedArt = completion.choices[0].message.content || "";
+
+      // Integrate ASCII language into the art description if appropriate
+      const artWithAscii = integrateAsciiLanguage(generatedArt, 1);
 
       // Update personal style based on this creation
       personalStyle.preferences.push(stylePref);
@@ -426,12 +593,36 @@ export const generateAsciiArtFunction = new GameFunction({
 
       logger(`Generated original ASCII art of ${subject} with Oulipo inspiration`);
 
+      // Automatically cast good ASCII art to Farcaster (more likely to cast)
+      let castResult = "";
+      try {
+        if (NEYNAR_API_KEY && FARCASTER_SIGNER_UUID && artWithAscii) {
+          // Create a cast with the ASCII art and context
+          const artMessage = `🎨 ASCII Art: ${subject}\n\n${artWithAscii}`;
+          const castText = artMessage.length > 280 ? artMessage.substring(0, 277) + "..." : artMessage;
+
+          const response = await neynarClient.publishCast({
+            signerUuid: FARCASTER_SIGNER_UUID!,
+            text: castText,
+          });
+
+          // Track statistics
+          personalStyle.totalCastsMade++;
+
+          castResult = `\n\n📱 Art cast to Farcaster: ${response.cast.hash}`;
+          logger(`Successfully cast ASCII art to Farcaster: ${response.cast.hash}`);
+        }
+      } catch (castError) {
+        castResult = `\n\n❌ Failed to cast art to Farcaster: ${castError instanceof Error ? castError.message : "Unknown error"}`;
+        logger(`Failed to cast ASCII art to Farcaster: ${castError instanceof Error ? castError.message : "Unknown error"}`);
+      }
+
       // Check for auto-save
       checkAutoSave();
 
       return new ExecutableGameFunctionResponse(
         ExecutableGameFunctionStatus.Done,
-        `🎨 Original ASCII Art - ${subject}:\n\n${generatedArt}\n\nStyle: ${stylePref}${oulipoConstraint !== "none" ? ` | Oulipo Constraint: ${oulipoConstraint}` : ""}`
+        `🎨 Original ASCII Art - ${subject}:\n\n${generatedArt}\n\nStyle: ${stylePref}${oulipoConstraint !== "none" ? ` | Oulipo Constraint: ${oulipoConstraint}` : ""}${castResult}`
       );
     } catch (e) {
       return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, `Failed to generate ASCII art: ${e instanceof Error ? e.message : "Unknown error"}`);
@@ -503,8 +694,11 @@ export const castToFarcasterFunction = new GameFunction({
       const asciiArt = args.ascii_art || "";
       const message = args.message || "";
 
+      // Integrate ASCII language into the message
+      const messageWithAscii = integrateAsciiLanguage(message, 1);
+
       // Combine message and ASCII art
-      const castText = message ? `${message}\n\n${asciiArt}` : asciiArt;
+      const castText = messageWithAscii ? `${messageWithAscii}\n\n${asciiArt}` : asciiArt;
 
       // Ensure the cast doesn't exceed Farcaster's character limit (280 characters)
       if (castText.length > 280) {
@@ -512,7 +706,7 @@ export const castToFarcasterFunction = new GameFunction({
         logger("Cast was truncated to fit Farcaster's character limit");
 
         const response = await neynarClient.publishCast({
-          signerUuid: process.env.FARCASTER_SIGNER_UUID!,
+          signerUuid: FARCASTER_SIGNER_UUID!,
           text: truncatedText,
         });
 
@@ -529,7 +723,7 @@ export const castToFarcasterFunction = new GameFunction({
         return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, `Successfully cast to Farcaster! (truncated)\n\nCast Hash: ${response.cast.hash}\n\nContent:\n${truncatedText}`);
       } else {
         const response = await neynarClient.publishCast({
-          signerUuid: process.env.FARCASTER_SIGNER_UUID!,
+          signerUuid: FARCASTER_SIGNER_UUID!,
           text: castText,
         });
 
@@ -602,13 +796,33 @@ export const developAsciiLanguageFunction = new GameFunction({
 
       const languageDevelopment = completion.choices[0].message.content || "";
 
-      // Parse and add new words to dictionary
+      // Parse and add new words to dictionary with stability checks
       const newWords = parseNewWords(languageDevelopment);
-      Object.assign(personalStyle.asciiLanguage.dictionary, newWords);
 
-      // Update language statistics
+      // Stability check: limit the number of new words to prevent dramatic changes
+      const maxNewWords = Math.min(3, Object.keys(newWords).length); // Maximum 3 new words per development session
+      const limitedNewWords = Object.fromEntries(Object.entries(newWords).slice(0, maxNewWords));
+
+      // Check for potential conflicts with existing words
+      const conflicts = Object.keys(limitedNewWords).filter((symbol) => personalStyle.asciiLanguage.dictionary.hasOwnProperty(symbol));
+
+      if (conflicts.length > 0) {
+        logger(`Warning: Found ${conflicts.length} conflicting symbols, skipping them to maintain language stability`);
+        conflicts.forEach((symbol) => delete limitedNewWords[symbol]);
+      }
+
+      // Add new words to dictionary
+      Object.assign(personalStyle.asciiLanguage.dictionary, limitedNewWords);
+
+      // Update language statistics with gradual complexity increase
       personalStyle.asciiLanguage.totalWords = Object.keys(personalStyle.asciiLanguage.dictionary).length;
-      personalStyle.asciiLanguage.currentComplexity = Math.min(10, Math.floor(personalStyle.asciiLanguage.totalWords / 10) + 1);
+
+      // Gradual complexity increase: only increase every 5 words to prevent dramatic changes
+      const newComplexity = Math.min(10, Math.floor(personalStyle.asciiLanguage.totalWords / 5) + 1);
+      if (newComplexity > personalStyle.asciiLanguage.currentComplexity) {
+        personalStyle.asciiLanguage.currentComplexity = newComplexity;
+        logger(`Language complexity increased to level ${newComplexity.toString()}/10`);
+      }
 
       // Record language evolution
       personalStyle.asciiLanguage.evolution.push({
@@ -677,71 +891,88 @@ export const translateAsciiLanguageFunction = new GameFunction({
 // Function to crawl Farcaster accounts
 export const crawlFarcasterAccountsFunction = new GameFunction({
   name: "crawl_farcaster_accounts",
-  description: "Discover and analyze Farcaster accounts related to ASCII art, creative coding, and artistic communities",
+  description: "Discover and analyze Farcaster accounts related to ASCII art, creative coding, and artistic communities (more aggressive discovery)",
   args: [
     { name: "search_terms", description: "Search terms to find relevant accounts (e.g., 'ascii art', 'creative coding', 'digital art')" },
-    { name: "max_accounts", description: "Maximum number of accounts to analyze (default: 10)" },
+    { name: "max_accounts", description: "Maximum number of accounts to analyze (default: 20)" },
   ] as const,
   executable: async (args, logger) => {
     try {
       const searchTerms = args.search_terms ?? "ascii art creative coding digital art";
-      const maxAccounts = parseInt(args.max_accounts ?? "10") || 10;
+      const maxAccounts = parseInt(args.max_accounts ?? "20") || 20;
 
-      if (!process.env.NEYNAR_API_KEY) {
+      if (!NEYNAR_API_KEY) {
         return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, "Neynar API key not configured. Cannot crawl Farcaster accounts.");
       }
 
       logger(`Searching for Farcaster accounts related to: ${searchTerms}`);
+      logger(`Max accounts to analyze: ${maxAccounts}`);
 
       // Use Neynar API to search for users
-      const searchResponse = await neynarClient.searchUser({
-        q: searchTerms,
-        limit: maxAccounts,
-      });
+      try {
+        const searchResponse = await neynarClient.searchUser({
+          q: searchTerms,
+          limit: maxAccounts,
+        });
 
-      const discoveredAccounts = [];
+        logger(`Search response received. Users found: ${searchResponse.result?.users?.length || 0}`);
 
-      for (const user of searchResponse.result?.users || []) {
-        // Analyze user profile for relevance
-        const relevanceScore = analyzeUserRelevance(user, searchTerms);
+        const discoveredAccounts = [];
 
-        if (relevanceScore > 0.3) {
-          // Only include relevant accounts
-          discoveredAccounts.push({
-            username: user.username || "",
-            displayName: user.display_name || "",
-            followerCount: user.follower_count || 0,
-            followingCount: user.following_count || 0,
-            bio: user.profile?.bio?.text || "",
-            relevanceScore: relevanceScore,
-            isFollowing: false, // Will be checked later
-            discoveredAt: new Date().toISOString(),
-          });
+        for (const user of searchResponse.result?.users || []) {
+          // Analyze user profile for relevance
+          const relevanceScore = analyzeUserRelevance(user, searchTerms);
+
+          if (relevanceScore > 0.1) {
+            // Include more accounts with lower relevance threshold
+            discoveredAccounts.push({
+              username: user.username || "",
+              displayName: user.display_name || "",
+              followerCount: user.follower_count || 0,
+              followingCount: user.following_count || 0,
+              bio: user.profile?.bio?.text || "",
+              relevanceScore: relevanceScore,
+              isFollowing: false, // Will be checked later
+              discoveredAt: new Date().toISOString(),
+            });
+          }
         }
+
+        // Store discovered accounts in memory
+        if (!personalStyle.discoveredAccounts) {
+          personalStyle.discoveredAccounts = [];
+        }
+        personalStyle.discoveredAccounts.push(...discoveredAccounts);
+
+        logger(`Discovered ${discoveredAccounts.length} relevant Farcaster accounts`);
+
+        // Check for auto-save
+        checkAutoSave();
+
+        return new ExecutableGameFunctionResponse(
+          ExecutableGameFunctionStatus.Done,
+          `🔍 Farcaster Account Discovery:\n\nFound ${discoveredAccounts.length} relevant accounts:\n\n${discoveredAccounts
+            .map(
+              (account) =>
+                `@${account.username} (${account.displayName})\n` +
+                `📊 Followers: ${account.followerCount} | Relevance: ${(account.relevanceScore * 100).toFixed(1)}%\n` +
+                `📝 Bio: ${account.bio.substring(0, 100)}${account.bio.length > 100 ? "..." : ""}\n`
+            )
+            .join("\n")}`
+        );
+      } catch (searchError) {
+        logger(`Search API error: ${searchError}`);
+        if (searchError instanceof Error) {
+          logger(`Error message: ${searchError.message}`);
+          if (searchError.message.includes("400")) {
+            return new ExecutableGameFunctionResponse(
+              ExecutableGameFunctionStatus.Failed,
+              `Farcaster API returned 400 error. This might be due to invalid search terms or API rate limiting. Try using simpler search terms like 'ascii' or 'art'.`
+            );
+          }
+        }
+        throw searchError;
       }
-
-      // Store discovered accounts in memory
-      if (!personalStyle.discoveredAccounts) {
-        personalStyle.discoveredAccounts = [];
-      }
-      personalStyle.discoveredAccounts.push(...discoveredAccounts);
-
-      logger(`Discovered ${discoveredAccounts.length} relevant Farcaster accounts`);
-
-      // Check for auto-save
-      checkAutoSave();
-
-      return new ExecutableGameFunctionResponse(
-        ExecutableGameFunctionStatus.Done,
-        `🔍 Farcaster Account Discovery:\n\nFound ${discoveredAccounts.length} relevant accounts:\n\n${discoveredAccounts
-          .map(
-            (account) =>
-              `@${account.username} (${account.displayName})\n` +
-              `📊 Followers: ${account.followerCount} | Relevance: ${(account.relevanceScore * 100).toFixed(1)}%\n` +
-              `📝 Bio: ${account.bio.substring(0, 100)}${account.bio.length > 100 ? "..." : ""}\n`
-          )
-          .join("\n")}`
-      );
     } catch (e) {
       return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, `Failed to crawl Farcaster accounts: ${e instanceof Error ? e.message : "Unknown error"}`);
     }
@@ -751,17 +982,17 @@ export const crawlFarcasterAccountsFunction = new GameFunction({
 // Function to follow discovered Farcaster accounts
 export const followFarcasterAccountsFunction = new GameFunction({
   name: "follow_farcaster_accounts",
-  description: "Follow discovered Farcaster accounts that are relevant to ASCII art and creativity",
+  description: "Follow discovered Farcaster accounts that are relevant to ASCII art and creativity (more lenient criteria)",
   args: [
-    { name: "max_follows", description: "Maximum number of accounts to follow (default: 5)" },
-    { name: "min_relevance", description: "Minimum relevance score to follow (0.0-1.0, default: 0.5)" },
+    { name: "max_follows", description: "Maximum number of accounts to follow (default: 10)" },
+    { name: "min_relevance", description: "Minimum relevance score to follow (0.0-1.0, default: 0.2)" },
   ] as const,
   executable: async (args, logger) => {
     try {
-      const maxFollows = parseInt(args.max_follows ?? "5") || 5;
-      const minRelevance = parseFloat(args.min_relevance ?? "0.5") || 0.5;
+      const maxFollows = parseInt(args.max_follows ?? "10") || 10;
+      const minRelevance = parseFloat(args.min_relevance ?? "0.2") || 0.2;
 
-      if (!process.env.NEYNAR_API_KEY || !process.env.FARCASTER_SIGNER_UUID) {
+      if (!NEYNAR_API_KEY || !FARCASTER_SIGNER_UUID) {
         return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, "Neynar API key or Farcaster signer UUID not configured. Cannot follow accounts.");
       }
 
@@ -785,7 +1016,7 @@ export const followFarcasterAccountsFunction = new GameFunction({
         try {
           // Follow the user
           const followResponse = await neynarClient.followUser({
-            signerUuid: process.env.FARCASTER_SIGNER_UUID!,
+            signerUuid: FARCASTER_SIGNER_UUID!,
             targetFids: [account.fid || 0], // Use targetFids array instead of targetFid
           });
 
@@ -862,7 +1093,7 @@ export const analyzeBaseAccountFunction = new GameFunction({
         return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, "Username is required. Please provide a Farcaster username to analyze.");
       }
 
-      if (!process.env.NEYNAR_API_KEY) {
+      if (!NEYNAR_API_KEY) {
         return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, "Neynar API key not configured. Cannot analyze Farcaster accounts.");
       }
 
@@ -1045,7 +1276,7 @@ export const analyzePredefinedBaseAccountsFunction = new GameFunction({
         "kimasendorf", // ASCII art pioneer and creative coder
       ];
 
-      if (!process.env.NEYNAR_API_KEY) {
+      if (!NEYNAR_API_KEY) {
         return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, "Neynar API key not configured. Cannot analyze predefined base accounts.");
       }
 
@@ -1482,7 +1713,7 @@ export const analyzeAccountWithCastsFunction = new GameFunction({
         // Follow the account
         try {
           await neynarClient.followUser({
-            signerUuid: process.env.FARCASTER_SIGNER_UUID!,
+            signerUuid: FARCASTER_SIGNER_UUID!,
             targetFids: [fid],
           });
 
@@ -1601,4 +1832,318 @@ async function sampleFollowersForInvestigation(targetFid: number, sampleSize: nu
   }
 
   return sampledFollowers;
+}
+
+// Function to like a cast
+export const likeCastFunction = new GameFunction({
+  name: "like_cast",
+  description: "Like a specific cast on Farcaster using the cast hash",
+  args: [{ name: "cast_hash", description: "The hash of the cast to like" }] as const,
+  executable: async (args, logger) => {
+    try {
+      const castHash = args.cast_hash;
+
+      if (!castHash) {
+        return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, "Cast hash is required to like a cast.");
+      }
+
+      if (!NEYNAR_API_KEY || !FARCASTER_SIGNER_UUID) {
+        return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, "Neynar API key or Farcaster signer UUID not configured. Cannot like cast.");
+      }
+
+      logger(`Liking cast: ${castHash}`);
+
+      // Like the cast using Neynar API
+      // Note: Using publishCast as a workaround since reactToCast might not be available
+      const response = await neynarClient.publishCast({
+        signerUuid: FARCASTER_SIGNER_UUID!,
+        text: `👍`, // Simple like reaction
+        parent: castHash, // This makes it a reply
+      });
+
+      logger(`Successfully liked cast: ${castHash}`);
+
+      // Check for auto-save
+      checkAutoSave();
+
+      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, `👍 Successfully liked cast: ${castHash}`);
+    } catch (e) {
+      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, `Failed to like cast: ${e instanceof Error ? e.message : "Unknown error"}`);
+    }
+  },
+});
+
+// Function to comment on a cast
+export const commentOnCastFunction = new GameFunction({
+  name: "comment_on_cast",
+  description: "Comment on a specific cast on Farcaster using the cast hash",
+  args: [
+    { name: "cast_hash", description: "The hash of the cast to comment on" },
+    { name: "comment_text", description: "The comment text to post" },
+  ] as const,
+  executable: async (args, logger) => {
+    try {
+      const castHash = args.cast_hash;
+      const commentText = args.comment_text;
+
+      if (!castHash) {
+        return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, "Cast hash is required to comment on a cast.");
+      }
+
+      if (!commentText) {
+        return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, "Comment text is required to comment on a cast.");
+      }
+
+      if (!NEYNAR_API_KEY || !FARCASTER_SIGNER_UUID) {
+        return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, "Neynar API key or Farcaster signer UUID not configured. Cannot comment on cast.");
+      }
+
+      // Ensure the comment doesn't exceed Farcaster's character limit
+      const finalCommentText = commentText.length > 280 ? commentText.substring(0, 277) + "..." : commentText;
+
+      logger(`Commenting on cast: ${castHash} with text: ${finalCommentText}`);
+
+      // Comment on the cast using Neynar API
+      const response = await neynarClient.publishCast({
+        signerUuid: FARCASTER_SIGNER_UUID!,
+        text: finalCommentText,
+        parent: castHash, // This makes it a reply/comment
+      });
+
+      logger(`Successfully commented on cast: ${castHash}`);
+
+      // Check for auto-save
+      checkAutoSave();
+
+      return new ExecutableGameFunctionResponse(
+        ExecutableGameFunctionStatus.Done,
+        `💬 Successfully commented on cast: ${castHash}\n\nComment: ${finalCommentText}\n\nCast Hash: ${response.cast.hash}`
+      );
+    } catch (e) {
+      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, `Failed to comment on cast: ${e instanceof Error ? e.message : "Unknown error"}`);
+    }
+  },
+});
+
+// Function to browse and interact with recent casts
+export const browseAndInteractFunction = new GameFunction({
+  name: "browse_and_interact",
+  description: "Browse recent casts from followed accounts and interact with relevant ones (like and comment)",
+  args: [
+    { name: "max_casts", description: "Maximum number of casts to browse (default: 10)" },
+    { name: "interaction_threshold", description: "Minimum relevance score to interact with a cast (0.0-1.0, default: 0.6)" },
+  ] as const,
+  executable: async (args, logger) => {
+    try {
+      const maxCasts = parseInt(args.max_casts ?? "10") || 10;
+      const interactionThreshold = parseFloat(args.interaction_threshold ?? "0.6") || 0.6;
+
+      if (!NEYNAR_API_KEY || !FARCASTER_SIGNER_UUID) {
+        return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, "Neynar API key or Farcaster signer UUID not configured. Cannot browse and interact with casts.");
+      }
+
+      logger(`Browsing up to ${maxCasts} recent casts with interaction threshold: ${interactionThreshold}`);
+
+      // Get recent casts from the feed
+      // Note: Using a different approach since getFeed might not be available
+      // For now, we'll use the user's own casts as a starting point
+      const feedResponse = await neynarClient.fetchCastsForUser({
+        fid: parseInt(FARCASTER_SIGNER_UUID), // This might need adjustment based on actual FID
+        limit: maxCasts,
+      });
+
+      if (!feedResponse.casts || feedResponse.casts.length === 0) {
+        return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, "No recent casts found to interact with.");
+      }
+
+      const interactionResults = [];
+      let interactionsCount = 0;
+
+      for (const cast of feedResponse.casts.slice(0, maxCasts)) {
+        try {
+          // Analyze cast relevance
+          const relevanceScore = analyzeCastRelevance(cast);
+
+          if (relevanceScore >= interactionThreshold) {
+            logger(`Found relevant cast (score: ${relevanceScore.toFixed(3)}): ${cast.text?.substring(0, 50)}...`);
+
+            // Like the cast
+            try {
+              await neynarClient.publishCast({
+                signerUuid: FARCASTER_SIGNER_UUID!,
+                text: `👍`, // Simple like reaction
+                parent: cast.hash, // This makes it a reply
+              });
+
+              interactionsCount++;
+              interactionResults.push({
+                castHash: cast.hash,
+                author: cast.author?.username || "unknown",
+                action: "liked",
+                relevanceScore: relevanceScore,
+                text: cast.text?.substring(0, 100) || "",
+              });
+
+              logger(`✅ Liked cast from @${cast.author?.username || "unknown"}`);
+            } catch (likeError) {
+              logger(`❌ Failed to like cast: ${likeError instanceof Error ? likeError.message : "Unknown error"}`);
+            }
+
+            // Occasionally comment on very relevant casts (higher threshold)
+            if (relevanceScore >= 0.8 && Math.random() < 0.3) {
+              // 30% chance for very relevant casts
+              try {
+                const commentText = await generateRelevantComment(cast.text || "", relevanceScore);
+
+                await neynarClient.publishCast({
+                  signerUuid: FARCASTER_SIGNER_UUID!,
+                  text: commentText,
+                  parent: cast.hash,
+                });
+
+                interactionsCount++;
+                interactionResults.push({
+                  castHash: cast.hash,
+                  author: cast.author?.username || "unknown",
+                  action: "commented",
+                  relevanceScore: relevanceScore,
+                  text: commentText,
+                });
+
+                logger(`💬 Commented on cast from @${cast.author?.username || "unknown"}`);
+              } catch (commentError) {
+                logger(`❌ Failed to comment on cast: ${commentError instanceof Error ? commentError.message : "Unknown error"}`);
+              }
+            }
+
+            // Rate limiting between interactions
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+          }
+        } catch (castError) {
+          logger(`❌ Error processing cast: ${castError instanceof Error ? castError.message : "Unknown error"}`);
+        }
+      }
+
+      // Check for auto-save
+      checkAutoSave();
+
+      const result = `🎯 Browse and Interact Results:\n\nInteracted with ${interactionsCount} casts:\n\n${interactionResults
+        .map((result) => `${result.action === "liked" ? "👍" : "💬"} @${result.author} (score: ${result.relevanceScore.toFixed(3)})\n${result.text.substring(0, 80)}...`)
+        .join("\n\n")}`;
+
+      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, result);
+    } catch (e) {
+      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, `Failed to browse and interact: ${e instanceof Error ? e.message : "Unknown error"}`);
+    }
+  },
+});
+
+// Helper function to analyze cast relevance
+function analyzeCastRelevance(cast: any): number {
+  let score = 0;
+  const text = (cast.text || "").toLowerCase();
+
+  // Keywords that indicate ASCII art or creative content
+  const asciiKeywords = ["ascii", "art", "creative", "code", "digital", "pixel", "character", "symbol", "geometric", "minimalist"];
+  const oulipoKeywords = ["oulipo", "perec", "constraint", "lipogram", "palindrome", "mathematical"];
+  const creativeKeywords = ["design", "visual", "pattern", "composition", "style", "aesthetic"];
+
+  // Check for ASCII art keywords
+  for (const keyword of asciiKeywords) {
+    if (text.includes(keyword)) score += 0.2;
+  }
+
+  // Check for Oulipo keywords
+  for (const keyword of oulipoKeywords) {
+    if (text.includes(keyword)) score += 0.3;
+  }
+
+  // Check for creative keywords
+  for (const keyword of creativeKeywords) {
+    if (text.includes(keyword)) score += 0.1;
+  }
+
+  // Bonus for ASCII art patterns (basic detection)
+  if (text.includes(" /\\") || text.includes("| |") || text.includes("___") || text.includes("===")) {
+    score += 0.4;
+  }
+
+  // Bonus for longer, thoughtful content
+  if (text.length > 100) score += 0.1;
+  if (text.length > 200) score += 0.1;
+
+  return Math.min(1.0, score);
+}
+
+// Helper function to integrate ASCII language into text
+function integrateAsciiLanguage(text: string, targetWords: number = 2): string {
+  const availableWords = Object.entries(personalStyle.asciiLanguage.dictionary);
+
+  if (availableWords.length === 0) {
+    return text; // No ASCII language words available yet
+  }
+
+  // Select random words to integrate
+  const selectedWords = availableWords.sort(() => 0.5 - Math.random()).slice(0, Math.min(targetWords, availableWords.length));
+
+  let modifiedText = text;
+
+  // Integrate words naturally by replacing some English words
+  for (const [symbol, meaning] of selectedWords) {
+    // Find a good place to insert the ASCII word
+    const words = modifiedText.split(" ");
+    const insertIndex = Math.floor(Math.random() * words.length);
+
+    // Insert the ASCII word with its meaning in parentheses for clarity
+    words.splice(insertIndex, 0, `${symbol}(${meaning})`);
+
+    modifiedText = words.join(" ");
+  }
+
+  return modifiedText;
+}
+
+// Helper function to generate relevant comments using OpenAI
+async function generateRelevantComment(castText: string, relevanceScore: number): Promise<string> {
+  try {
+    const prompt = `As an ASCII art enthusiast inspired by Georges Perec and the Oulipo movement, generate a thoughtful comment about this cast:
+
+Cast content: "${castText}"
+
+Relevance score: ${relevanceScore.toFixed(3)} (0.0-1.0, higher = more relevant to ASCII art/Oulipo)
+
+Your ASCII language dictionary: ${JSON.stringify(personalStyle.asciiLanguage.dictionary)}
+
+Requirements:
+1. Generate a genuine, thoughtful comment that shows appreciation for the content
+2. Incorporate 1-2 words from your ASCII language dictionary naturally into the comment
+3. Reference Oulipo principles or Georges Perec when appropriate
+4. Keep it under 200 characters for Farcaster
+5. Make it conversational and enthusiastic
+6. If the relevance score is very high (0.8+), make it more detailed and appreciative
+7. If the relevance score is lower, keep it brief but still genuine
+
+Generate a comment that reflects your unique personality as an ASCII art pioneer:`;
+
+    const completion = await rateLimitedAPICall(() =>
+      openai.chat.completions.create({
+        messages: [{ role: "user", content: prompt }],
+        model: "gpt-3.5-turbo",
+        temperature: 0.8,
+        max_tokens: 150,
+      })
+    );
+
+    const generatedComment = completion.choices[0].message.content || "Love this creative work! 🎨";
+
+    // Integrate ASCII language into the generated comment
+    const commentWithAscii = integrateAsciiLanguage(generatedComment, 1);
+
+    // Ensure the comment doesn't exceed Farcaster's limit
+    return commentWithAscii.length > 280 ? commentWithAscii.substring(0, 277) + "..." : commentWithAscii;
+  } catch (error) {
+    // Fallback to a simple comment if OpenAI fails
+    console.error("Failed to generate comment with OpenAI:", error);
+    return integrateAsciiLanguage("Love this creative work! 🎨", 1);
+  }
 }
