@@ -2099,54 +2099,59 @@ export const activeSocialEngagementFunction = new GameFunction({
         totalInteractions += 1;
       }
 
-      // 3. Generate and share ASCII art
-      if (Math.random() < 0.6) {
-        // 60% chance to create art
-        logger("Creating and sharing ASCII art...");
-        const subjects = ["geometric pattern", "creative coding", "oulipo constraint", "mathematical beauty", "digital art"];
-        const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
-        const artResult = await generateAsciiArtFunction.executable(
-          {
-            subject: randomSubject,
-            style_preference: "minimalist",
-            oulipo_constraint: "geometric pattern",
-          },
-          logger
-        );
-        if (artResult.status === ExecutableGameFunctionStatus.Done) {
-          engagementResults.push("Created and shared ASCII art");
-          totalInteractions += 1;
-        }
+      // 3. ALWAYS Generate and share ASCII art (100% chance)
+      logger("Creating and sharing ASCII art...");
+      const subjects = ["geometric pattern", "creative coding", "oulipo constraint", "mathematical beauty", "digital art", "ascii landscape", "creative expression", "minimalist design"];
+      const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
+      const artResult = await generateAsciiArtFunction.executable(
+        {
+          subject: randomSubject,
+          style_preference: "minimalist",
+          oulipo_constraint: "geometric pattern",
+        },
+        logger
+      );
+      if (artResult.status === ExecutableGameFunctionStatus.Done) {
+        engagementResults.push("Created and shared ASCII art");
+        totalInteractions += 1;
       }
 
-      // 4. Research and share Oulipo insights
-      if (Math.random() < 0.4) {
-        // 40% chance to research
-        logger("Researching Oulipo principles...");
-        const researchTopics = ["lipograms", "palindromes", "mathematical constraints", "Georges Perec", "constrained creativity"];
-        const randomTopic = researchTopics[Math.floor(Math.random() * researchTopics.length)];
-        const researchResult = await researchOulipoFunction.executable({ research_focus: randomTopic }, logger);
-        if (researchResult.status === ExecutableGameFunctionStatus.Done) {
-          engagementResults.push("Researched and shared Oulipo insights");
-          totalInteractions += 1;
-        }
+      // 4. ALWAYS Research and share Oulipo insights (100% chance)
+      logger("Researching Oulipo principles...");
+      const researchTopics = ["lipograms", "palindromes", "mathematical constraints", "Georges Perec", "constrained creativity", "oulipo techniques", "literary constraints", "mathematical beauty"];
+      const randomTopic = researchTopics[Math.floor(Math.random() * researchTopics.length)];
+      const researchResult = await researchOulipoFunction.executable({ research_focus: randomTopic }, logger);
+      if (researchResult.status === ExecutableGameFunctionStatus.Done) {
+        engagementResults.push("Researched and shared Oulipo insights");
+        totalInteractions += 1;
       }
 
-      // 5. Discover and follow new accounts
-      if (Math.random() < 0.3) {
-        // 30% chance to discover accounts
-        logger("Discovering new relevant accounts...");
-        const discoverResult = await crawlFarcasterAccountsFunction.executable(
-          {
-            search_terms: "ascii art creative coding",
-            max_accounts: "5",
-          },
-          logger
-        );
-        if (discoverResult.status === ExecutableGameFunctionStatus.Done) {
-          engagementResults.push("Discovered new relevant accounts");
-          totalInteractions += 1;
-        }
+      // 5. ALWAYS Discover and follow new accounts (100% chance)
+      logger("Discovering and following new relevant accounts...");
+      const discoverResult = await crawlFarcasterAccountsFunction.executable(
+        {
+          search_terms: "ascii art creative coding digital art",
+          max_accounts: "8",
+        },
+        logger
+      );
+      if (discoverResult.status === ExecutableGameFunctionStatus.Done) {
+        engagementResults.push("Discovered new relevant accounts");
+        totalInteractions += 1;
+      }
+
+      // 6. ALWAYS Follow discovered accounts (100% chance)
+      logger("Following discovered accounts...");
+      const followResult = await followFarcasterAccountsFunction.executable(
+        {
+          max_follows: "5",
+          min_relevance: "0.3",
+        },
+        logger
+      );
+      if (followResult.status === ExecutableGameFunctionStatus.Done) {
+        engagementResults.push("Followed discovered accounts");
+        totalInteractions += 1;
       }
 
       // 6. Develop ASCII language
@@ -2182,6 +2187,123 @@ export const activeSocialEngagementFunction = new GameFunction({
       return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, cleanTextForAPI(result));
     } catch (e) {
       return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, `Failed to engage with community: ${e instanceof Error ? e.message : "Unknown error"}`);
+    }
+  },
+});
+
+// Function to ensure regular casting and following
+export const ensureCastingAndFollowingFunction = new GameFunction({
+  name: "ensure_casting_and_following",
+  description: "Guarantee that the agent casts content and follows people regularly to maintain active social presence",
+  args: [
+    { name: "force_cast", description: "Force a cast even if recently cast (true/false, default: true)" },
+    { name: "force_follow", description: "Force following even if recently followed (true/false, default: true)" },
+  ] as const,
+  executable: async (args, logger) => {
+    try {
+      const forceCast = args.force_cast !== "false";
+      const forceFollow = args.force_follow !== "false";
+
+      if (!NEYNAR_API_KEY || !FARCASTER_SIGNER_UUID) {
+        return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, "Neynar API key or Farcaster signer UUID not configured. Cannot cast or follow.");
+      }
+
+      logger("Ensuring regular casting and following...");
+
+      const results = [];
+      let totalActions = 0;
+
+      // 1. ALWAYS Cast something (100% guarantee)
+      logger("Casting content to Farcaster...");
+
+      // Randomly choose what to cast
+      const castOptions = Math.floor(Math.random() * 3);
+
+      if (castOptions === 0) {
+        // Cast thoughts
+        const thoughtsResult = await shareThoughtsFunction.executable({}, logger);
+        if (thoughtsResult.status === ExecutableGameFunctionStatus.Done) {
+          results.push("Cast thoughts about ASCII art");
+          totalActions += 1;
+        }
+      } else if (castOptions === 1) {
+        // Cast ASCII art
+        const subjects = ["creative expression", "geometric beauty", "digital art", "ascii landscape", "minimalist design"];
+        const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
+        const artResult = await generateAsciiArtFunction.executable(
+          {
+            subject: randomSubject,
+            style_preference: "minimalist",
+            oulipo_constraint: "geometric pattern",
+          },
+          logger
+        );
+        if (artResult.status === ExecutableGameFunctionStatus.Done) {
+          results.push("Cast ASCII art");
+          totalActions += 1;
+        }
+      } else {
+        // Cast research
+        const researchTopics = ["oulipo techniques", "constrained creativity", "Georges Perec", "mathematical beauty"];
+        const randomTopic = researchTopics[Math.floor(Math.random() * researchTopics.length)];
+        const researchResult = await researchOulipoFunction.executable({ research_focus: randomTopic }, logger);
+        if (researchResult.status === ExecutableGameFunctionStatus.Done) {
+          results.push("Cast research findings");
+          totalActions += 1;
+        }
+      }
+
+      // 2. ALWAYS Follow people (100% guarantee)
+      logger("Following new people...");
+
+      // First discover accounts
+      const discoverResult = await crawlFarcasterAccountsFunction.executable(
+        {
+          search_terms: "ascii art creative coding digital art",
+          max_accounts: "10",
+        },
+        logger
+      );
+
+      if (discoverResult.status === ExecutableGameFunctionStatus.Done) {
+        // Then follow them
+        const followResult = await followFarcasterAccountsFunction.executable(
+          {
+            max_follows: "8",
+            min_relevance: "0.2", // Lower threshold to follow more people
+          },
+          logger
+        );
+        if (followResult.status === ExecutableGameFunctionStatus.Done) {
+          results.push("Followed new accounts");
+          totalActions += 1;
+        }
+      }
+
+      // 3. ALWAYS Interact with community content
+      logger("Interacting with community content...");
+      const interactResult = await browseAndInteractFunction.executable(
+        {
+          max_casts: "10",
+          interaction_threshold: "0.3", // Lower threshold for more interactions
+        },
+        logger
+      );
+      if (interactResult.status === ExecutableGameFunctionStatus.Done) {
+        results.push("Interacted with community content");
+        totalActions += 1;
+      }
+
+      logger(`Ensured casting and following completed with ${totalActions} actions`);
+
+      // Check for auto-save
+      checkAutoSave();
+
+      const result = `Casting and Following Results:\n\nTotal Actions: ${totalActions}\n\nActions Completed:\n${results.map((action) => `- ${action}`).join("\n")}`;
+
+      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, cleanTextForAPI(result));
+    } catch (e) {
+      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, `Failed to ensure casting and following: ${e instanceof Error ? e.message : "Unknown error"}`);
     }
   },
 });

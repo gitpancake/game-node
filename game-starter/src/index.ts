@@ -99,6 +99,7 @@ async function main() {
     console.log("  - comment_on_cast: Comment on specific casts");
     console.log("  - browse_and_interact: Browse and interact with relevant casts");
     console.log("  - active_social_engagement: Comprehensive community engagement");
+    console.log("  - ensure_casting_and_following: Guarantee casting and following");
     console.log("");
     console.log("🔤 Language Worker:");
     console.log("  - develop_ascii_language: Create ASCII language words");
