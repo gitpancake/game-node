@@ -69,6 +69,7 @@ let personalStyle = {
     totalFollowed: 0,
     lastFollowTime: new Date().toISOString(),
   },
+  lastCastTime: new Date().toISOString(), // Track when we last cast
   baseInspiration: {
     accounts: [] as any[],
     lastAnalysis: new Date().toISOString(),
@@ -399,6 +400,7 @@ export const researchOulipoFunction = new GameFunction({
 
         // Track statistics
         personalStyle.totalCastsMade++;
+        personalStyle.lastCastTime = new Date().toISOString(); // Update last cast time
 
         castResult = `\n\n📱 Research cast to Farcaster: ${response.cast.hash}`;
         logger(`✅ SUCCESS: Research cast published to Farcaster with hash: ${response.cast.hash}`);
@@ -578,6 +580,7 @@ export const shareThoughtsFunction = new GameFunction({
 
         // Track statistics
         personalStyle.totalCastsMade++;
+        personalStyle.lastCastTime = new Date().toISOString(); // Update last cast time
 
         castResult = `\n\n📱 Cast to Farcaster: ${response.cast.hash}`;
         logger(`✅ SUCCESS: Cast published to Farcaster with hash: ${response.cast.hash}`);
@@ -824,6 +827,7 @@ export const castToFarcasterFunction = new GameFunction({
 
         // Track statistics
         personalStyle.totalCastsMade++;
+        personalStyle.lastCastTime = new Date().toISOString(); // Update last cast time
 
         // Enhanced logging for casts
         console.log("\n🎉🎉🎉 FARCASTER CAST SUCCESSFUL! (Truncated) 🎉🎉🎉");
@@ -841,6 +845,7 @@ export const castToFarcasterFunction = new GameFunction({
 
         // Track statistics
         personalStyle.totalCastsMade++;
+        personalStyle.lastCastTime = new Date().toISOString(); // Update last cast time
 
         logger(`Successfully cast to Farcaster with hash: ${response.cast.hash}`);
 
@@ -1021,11 +1026,17 @@ export const crawlFarcasterAccountsFunction = new GameFunction({
 
       logger(`Searching for Farcaster accounts related to: ${searchTerms}`);
       logger(`Max accounts to analyze: ${maxAccounts}`);
+      logger(`Original search terms: "${searchTerms}"`);
 
       // Use Neynar API to search for users
       try {
+        // Clean and simplify search terms for API compatibility
+        const cleanedTerms = cleanSearchTerms(searchTerms);
+
+        logger(`Cleaned search terms: "${cleanedTerms}"`);
+
         const searchResponse = await neynarClient.searchUser({
-          q: searchTerms,
+          q: cleanedTerms,
           limit: maxAccounts,
         });
 
@@ -1042,6 +1053,7 @@ export const crawlFarcasterAccountsFunction = new GameFunction({
             discoveredAccounts.push({
               username: user.username || "",
               displayName: user.display_name || "",
+              fid: user.fid || 0, // Store the FID for following
               followerCount: user.follower_count || 0,
               followingCount: user.following_count || 0,
               bio: user.profile?.bio?.text || "",
@@ -1078,11 +1090,72 @@ export const crawlFarcasterAccountsFunction = new GameFunction({
         logger(`Search API error: ${searchError}`);
         if (searchError instanceof Error) {
           logger(`Error message: ${searchError.message}`);
+
+          // Try fallback search with simpler terms if 400 error
           if (searchError.message.includes("400")) {
-            return new ExecutableGameFunctionResponse(
-              ExecutableGameFunctionStatus.Failed,
-              `Farcaster API returned 400 error. This might be due to invalid search terms or API rate limiting. Try using simpler search terms like 'ascii' or 'art'.`
-            );
+            logger(`Attempting fallback search with simpler terms...`);
+
+            try {
+              // Fallback to simple search terms
+              const fallbackTerms = ["ascii", "art"];
+              const fallbackResponse = await neynarClient.searchUser({
+                q: fallbackTerms.join(" "),
+                limit: Math.min(maxAccounts, 10), // Reduce limit for fallback
+              });
+
+              logger(`Fallback search successful. Users found: ${fallbackResponse.result?.users?.length || 0}`);
+
+              const discoveredAccounts = [];
+
+              for (const user of fallbackResponse.result?.users || []) {
+                // Analyze user profile for relevance
+                const relevanceScore = analyzeUserRelevance(user, searchTerms);
+
+                if (relevanceScore > 0.05) {
+                  // Lower threshold for fallback
+                  discoveredAccounts.push({
+                    username: user.username || "",
+                    displayName: user.display_name || "",
+                    fid: user.fid || 0, // Store the FID for following
+                    followerCount: user.follower_count || 0,
+                    followingCount: user.following_count || 0,
+                    bio: user.profile?.bio?.text || "",
+                    relevanceScore: relevanceScore,
+                    isFollowing: false,
+                    discoveredAt: new Date().toISOString(),
+                  });
+                }
+              }
+
+              // Store discovered accounts in memory
+              if (!personalStyle.discoveredAccounts) {
+                personalStyle.discoveredAccounts = [];
+              }
+              personalStyle.discoveredAccounts.push(...discoveredAccounts);
+
+              logger(`Discovered ${discoveredAccounts.length} relevant Farcaster accounts via fallback search`);
+
+              // Check for auto-save
+              checkAutoSave();
+
+              return new ExecutableGameFunctionResponse(
+                ExecutableGameFunctionStatus.Done,
+                `🔍 Farcaster Account Discovery (Fallback):\n\nFound ${discoveredAccounts.length} relevant accounts using simplified search:\n\n${discoveredAccounts
+                  .map(
+                    (account) =>
+                      `@${account.username} (${account.displayName})\n` +
+                      `📊 Followers: ${account.followerCount} | Relevance: ${(account.relevanceScore * 100).toFixed(1)}%\n` +
+                      `📝 Bio: ${account.bio.substring(0, 100)}${account.bio.length > 100 ? "..." : ""}\n`
+                  )
+                  .join("\n")}\n\nNote: Used fallback search due to API limitations with complex search terms.`
+              );
+            } catch (fallbackError) {
+              logger(`Fallback search also failed: ${fallbackError}`);
+              return new ExecutableGameFunctionResponse(
+                ExecutableGameFunctionStatus.Failed,
+                `Farcaster API search failed. The search terms "${searchTerms}" may be too complex or the API may be experiencing issues. Try using simpler single-word terms like 'ascii' or 'art'.`
+              );
+            }
           }
         }
         throw searchError;
@@ -1128,10 +1201,23 @@ export const followFarcasterAccountsFunction = new GameFunction({
 
       for (const account of accountsToFollow) {
         try {
+          // Check if we have a valid FID for this account
+          if (!account.fid || account.fid === 0) {
+            logger(`Skipping @${account.username} - no valid FID available`);
+            followResults.push({
+              username: account.username,
+              success: false,
+              message: "No valid FID available",
+            });
+            continue;
+          }
+
+          logger(`Attempting to follow @${account.username} (FID: ${account.fid})...`);
+
           // Follow the user
           const followResponse = await neynarClient.followUser({
             signerUuid: FARCASTER_SIGNER_UUID!,
-            targetFids: [account.fid || 0], // Use targetFids array instead of targetFid
+            targetFids: [account.fid],
           });
 
           // Mark as following
@@ -1144,18 +1230,21 @@ export const followFarcasterAccountsFunction = new GameFunction({
             message: "Successfully followed",
           });
 
-          logger(`Followed @${account.username}`);
+          logger(`✅ Successfully followed @${account.username}`);
 
-          // Rate limiting between follows
-          await new Promise((resolve) => setTimeout(resolve, 2000));
+          // Rate limiting between follows (reduced from 2s to 1s for more aggressive following)
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         } catch (followError) {
+          const errorMessage = followError instanceof Error ? followError.message : "Unknown error";
           followResults.push({
             username: account.username,
             success: false,
-            message: followError instanceof Error ? followError.message : "Unknown error",
+            message: errorMessage,
           });
 
-          logger(`Failed to follow @${account.username}: ${followError instanceof Error ? followError.message : "Unknown error"}`);
+          logger(`❌ Failed to follow @${account.username}: ${errorMessage}`);
+
+          // Continue with next account even if one fails
         }
       }
 
@@ -2060,10 +2149,32 @@ export const browseAndInteractFunction = new GameFunction({
 
       // Search for relevant content to interact with
       // This will help us find ASCII art and creative content
-      const searchResponse = await neynarClient.searchUser({
-        q: "ascii art creative coding digital art",
-        limit: maxCasts * 2,
-      });
+      const searchTerms = "ascii art creative coding digital art";
+      const cleanedTerms = cleanSearchTerms(searchTerms);
+
+      logger(`Searching for users with terms: "${cleanedTerms}"`);
+
+      let searchResponse;
+      try {
+        searchResponse = await neynarClient.searchUser({
+          q: cleanedTerms,
+          limit: maxCasts * 2,
+        });
+      } catch (searchError) {
+        logger(`Search API error: ${searchError}`);
+        // Try fallback search with simpler terms
+        try {
+          logger(`Attempting fallback search with simpler terms...`);
+          searchResponse = await neynarClient.searchUser({
+            q: "ascii art",
+            limit: Math.min(maxCasts, 10),
+          });
+          logger(`Fallback search successful`);
+        } catch (fallbackError) {
+          logger(`Fallback search also failed: ${fallbackError}`);
+          return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, "Failed to search for relevant users. API may be experiencing issues.");
+        }
+      }
 
       if (!searchResponse.result || searchResponse.result.users.length === 0) {
         return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, "No relevant users found to interact with.");
@@ -2334,10 +2445,14 @@ export const ensureCastingAndFollowingFunction = new GameFunction({
       const results = [];
       let totalActions = 0;
 
-      // 1. Strategic casting (only occasionally, not every cycle)
-      if (Math.random() < 0.15) {
-        // 15% chance per 5-minute cycle = ~3-4 times per day
-        logger("Casting meaningful content to Farcaster...");
+      // 1. Strategic casting (limited to 3-4 times per day)
+      const now = new Date();
+      const lastCastTime = personalStyle.lastCastTime ? new Date(personalStyle.lastCastTime) : new Date(0);
+      const hoursSinceLastCast = (now.getTime() - lastCastTime.getTime()) / (1000 * 60 * 60);
+
+      // Only cast if it's been at least 6 hours since the last cast
+      if (hoursSinceLastCast >= 6) {
+        logger(`Casting meaningful content to Farcaster... (${hoursSinceLastCast.toFixed(1)} hours since last cast)`);
 
         // Randomly choose what to cast
         const castOptions = Math.floor(Math.random() * 3);
@@ -2376,32 +2491,88 @@ export const ensureCastingAndFollowingFunction = new GameFunction({
           }
         }
       } else {
-        logger("Skipping casting this cycle - focusing on outreach and discovery");
+        logger(`Skipping casting this cycle - only ${hoursSinceLastCast.toFixed(1)} hours since last cast (need 6+ hours)`);
       }
 
       // 2. ALWAYS Follow people (100% guarantee)
       logger("Following new people...");
 
-      // First discover accounts
-      const discoverResult = await crawlFarcasterAccountsFunction.executable(
-        {
-          search_terms: "ascii art creative coding digital art",
-          max_accounts: "10",
-        },
-        logger
-      );
+      // First discover accounts with multiple search terms to find more people
+      const searchTerms = ["ascii art creative coding digital art", "ascii art", "creative coding", "digital art", "geometric art", "minimalist design"];
 
-      if (discoverResult.status === ExecutableGameFunctionStatus.Done) {
-        // Then follow them
+      let totalDiscovered = 0;
+
+      for (const searchTerm of searchTerms.slice(0, 3)) {
+        // Try first 3 search terms
+        const discoverResult = await crawlFarcasterAccountsFunction.executable(
+          {
+            search_terms: searchTerm,
+            max_accounts: "15", // Increased from 10
+          },
+          logger
+        );
+
+        if (discoverResult.status === ExecutableGameFunctionStatus.Done) {
+          totalDiscovered += 1;
+        }
+
+        // Small delay between searches
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+
+      if (totalDiscovered > 0) {
+        // Then follow them with more aggressive settings
         const followResult = await followFarcasterAccountsFunction.executable(
           {
-            max_follows: "8",
-            min_relevance: "0.2", // Lower threshold to follow more people
+            max_follows: "12", // Increased from 8
+            min_relevance: "0.15", // Lower threshold to follow more people
           },
           logger
         );
         if (followResult.status === ExecutableGameFunctionStatus.Done) {
           results.push("Followed new accounts");
+          totalActions += 1;
+        }
+      } else {
+        // If no accounts discovered, try to follow some predefined relevant accounts
+        logger("No accounts discovered, trying to follow predefined relevant accounts...");
+
+        // Add some predefined accounts to discovered accounts
+        const predefinedAccounts = [
+          { username: "kimasendorf", fid: 3, displayName: "Kim Asendorf", relevanceScore: 0.9 },
+          { username: "ascii_art", fid: 12345, displayName: "ASCII Art", relevanceScore: 0.8 },
+          { username: "creative_coding", fid: 67890, displayName: "Creative Coding", relevanceScore: 0.8 },
+        ];
+
+        if (!personalStyle.discoveredAccounts) {
+          personalStyle.discoveredAccounts = [];
+        }
+
+        // Add predefined accounts that aren't already in the list
+        for (const account of predefinedAccounts) {
+          const exists = personalStyle.discoveredAccounts.find((acc) => acc.username === account.username);
+          if (!exists) {
+            personalStyle.discoveredAccounts.push({
+              ...account,
+              followerCount: 0,
+              followingCount: 0,
+              bio: "Predefined relevant account",
+              isFollowing: false,
+              discoveredAt: new Date().toISOString(),
+            });
+          }
+        }
+
+        // Try to follow these accounts
+        const followResult = await followFarcasterAccountsFunction.executable(
+          {
+            max_follows: "5",
+            min_relevance: "0.7",
+          },
+          logger
+        );
+        if (followResult.status === ExecutableGameFunctionStatus.Done) {
+          results.push("Followed predefined accounts");
           totalActions += 1;
         }
       }
@@ -2479,6 +2650,15 @@ function cleanTextForAPI(text: string): string {
     .replace(/[^\x00-\x7F]/g, "") // Remove non-ASCII characters
     .replace(/\s+/g, " ") // Normalize whitespace
     .trim();
+}
+
+// Helper function to clean search terms for Neynar API compatibility
+function cleanSearchTerms(terms: string): string {
+  return terms
+    .split(/[,\s]+/) // Split by commas and spaces
+    .filter((term) => term.length > 0) // Remove empty terms
+    .slice(0, 3) // Limit to first 3 terms to avoid API issues
+    .join(" "); // Join with spaces
 }
 
 // Helper function to integrate ASCII language into text
