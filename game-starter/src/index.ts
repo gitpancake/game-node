@@ -131,11 +131,11 @@ async function main() {
 
           // Trigger outreach and discovery (but not necessarily casting)
           await activity_agent.step({
-            verbose: true,
+            verbose: false,
           });
         } else {
           // Regular agent step for other activities (research, language development, etc.)
-          await activity_agent.step({ verbose: true });
+          await activity_agent.step({ verbose: false });
         }
 
         lastApiCallTime = Date.now();
