@@ -98,6 +98,7 @@ async function main() {
     console.log("  - like_cast: Like specific casts on Farcaster");
     console.log("  - comment_on_cast: Comment on specific casts");
     console.log("  - browse_and_interact: Browse and interact with relevant casts");
+    console.log("  - active_social_engagement: Comprehensive community engagement");
     console.log("");
     console.log("🔤 Language Worker:");
     console.log("  - develop_ascii_language: Create ASCII language words");
@@ -122,12 +123,12 @@ async function main() {
       }
 
       try {
-        // Check if it's time to share thoughts (every 15 seconds)
+        // Check if it's time for active social engagement (every 30 seconds)
         if (currentTime - lastThoughtTime >= THOUGHT_INTERVAL) {
-          console.log("⏰ Time to share thoughts about ASCII art!");
+          console.log("⏰ Time for active social engagement!");
           lastThoughtTime = currentTime;
 
-          // Trigger a thought sharing step
+          // Trigger active social engagement
           await activity_agent.step({
             verbose: true,
           });

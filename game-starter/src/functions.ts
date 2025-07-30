@@ -372,7 +372,7 @@ export const researchOulipoFunction = new GameFunction({
 
       return new ExecutableGameFunctionResponse(
         ExecutableGameFunctionStatus.Done,
-        `📚 Oulipo Research - ${focus}:\n\n${research}\n\nStored in research database for future ASCII art inspiration.${castResult}`
+        cleanTextForAPI(`Oulipo Research - ${focus}:\n\n${research}\n\nStored in research database for future ASCII art inspiration.${castResult}`)
       );
     } catch (e) {
       return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, `Failed to research Oulipo: ${e instanceof Error ? e.message : "Unknown error"}`);
@@ -516,7 +516,7 @@ export const shareThoughtsFunction = new GameFunction({
       // Check for auto-save
       checkAutoSave();
 
-      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, `🎨 ASCII Art & Oulipo Thoughts:\n\n${thoughts}${castResult}`);
+      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, cleanTextForAPI(`ASCII Art & Oulipo Thoughts:\n\n${thoughts}${castResult}`));
     } catch (e) {
       return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, `Failed to share thoughts: ${e instanceof Error ? e.message : "Unknown error"}`);
     }
@@ -622,7 +622,7 @@ export const generateAsciiArtFunction = new GameFunction({
 
       return new ExecutableGameFunctionResponse(
         ExecutableGameFunctionStatus.Done,
-        `🎨 Original ASCII Art - ${subject}:\n\n${generatedArt}\n\nStyle: ${stylePref}${oulipoConstraint !== "none" ? ` | Oulipo Constraint: ${oulipoConstraint}` : ""}${castResult}`
+        cleanTextForAPI(`Original ASCII Art - ${subject}:\n\n${generatedArt}\n\nStyle: ${stylePref}${oulipoConstraint !== "none" ? ` | Oulipo Constraint: ${oulipoConstraint}` : ""}${castResult}`)
       );
     } catch (e) {
       return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, `Failed to generate ASCII art: ${e instanceof Error ? e.message : "Unknown error"}`);
@@ -842,7 +842,9 @@ export const developAsciiLanguageFunction = new GameFunction({
 
       return new ExecutableGameFunctionResponse(
         ExecutableGameFunctionStatus.Done,
-        `🔤 ASCII Language Development - ${concept}:\n\n${languageDevelopment}\n\n📊 Language Stats: ${personalStyle.asciiLanguage.totalWords} total words, Complexity Level ${personalStyle.asciiLanguage.currentComplexity}/10`
+        cleanTextForAPI(
+          `ASCII Language Development - ${concept}:\n\n${languageDevelopment}\n\nLanguage Stats: ${personalStyle.asciiLanguage.totalWords} total words, Complexity Level ${personalStyle.asciiLanguage.currentComplexity}/10`
+        )
       );
     } catch (e) {
       return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, `Failed to develop ASCII language: ${e instanceof Error ? e.message : "Unknown error"}`);
@@ -1866,7 +1868,7 @@ export const likeCastFunction = new GameFunction({
       // Check for auto-save
       checkAutoSave();
 
-      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, `👍 Successfully liked cast: ${castHash}`);
+      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, cleanTextForAPI(`Successfully liked cast: ${castHash}`));
     } catch (e) {
       return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, `Failed to like cast: ${e instanceof Error ? e.message : "Unknown error"}`);
     }
@@ -1917,7 +1919,7 @@ export const commentOnCastFunction = new GameFunction({
 
       return new ExecutableGameFunctionResponse(
         ExecutableGameFunctionStatus.Done,
-        `💬 Successfully commented on cast: ${castHash}\n\nComment: ${finalCommentText}\n\nCast Hash: ${response.cast.hash}`
+        cleanTextForAPI(`Successfully commented on cast: ${castHash}\n\nComment: ${finalCommentText}\n\nCast Hash: ${response.cast.hash}`)
       );
     } catch (e) {
       return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, `Failed to comment on cast: ${e instanceof Error ? e.message : "Unknown error"}`);
@@ -1928,7 +1930,7 @@ export const commentOnCastFunction = new GameFunction({
 // Function to browse and interact with recent casts
 export const browseAndInteractFunction = new GameFunction({
   name: "browse_and_interact",
-  description: "Browse recent casts from followed accounts and interact with relevant ones (like and comment)",
+  description: "Actively browse Farcaster for relevant content and engage with the community (like, comment, and interact with ASCII art and creative content)",
   args: [
     { name: "max_casts", description: "Maximum number of casts to browse (default: 10)" },
     { name: "interaction_threshold", description: "Minimum relevance score to interact with a cast (0.0-1.0, default: 0.6)" },
@@ -1944,22 +1946,43 @@ export const browseAndInteractFunction = new GameFunction({
 
       logger(`Browsing up to ${maxCasts} recent casts with interaction threshold: ${interactionThreshold}`);
 
-      // Get recent casts from the feed
-      // Note: Using a different approach since getFeed might not be available
-      // For now, we'll use the user's own casts as a starting point
-      const feedResponse = await neynarClient.fetchCastsForUser({
-        fid: parseInt(FARCASTER_SIGNER_UUID), // This might need adjustment based on actual FID
-        limit: maxCasts,
+      // Search for relevant content to interact with
+      // This will help us find ASCII art and creative content
+      const searchResponse = await neynarClient.searchUser({
+        q: "ascii art creative coding digital art",
+        limit: maxCasts * 2,
       });
 
-      if (!feedResponse.casts || feedResponse.casts.length === 0) {
+      if (!searchResponse.result || searchResponse.result.users.length === 0) {
+        return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, "No relevant users found to interact with.");
+      }
+
+      // Get casts from the most relevant users
+      const relevantUsers = searchResponse.result.users.slice(0, Math.min(5, searchResponse.result.users.length));
+      const allCasts = [];
+
+      for (const user of relevantUsers) {
+        try {
+          const userCasts = await neynarClient.fetchCastsForUser({
+            fid: user.fid,
+            limit: Math.ceil(maxCasts / relevantUsers.length),
+          });
+          if (userCasts.casts) {
+            allCasts.push(...userCasts.casts);
+          }
+        } catch (error) {
+          logger(`Failed to fetch casts for user ${user.username}: ${error}`);
+        }
+      }
+
+      if (!allCasts || allCasts.length === 0) {
         return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, "No recent casts found to interact with.");
       }
 
       const interactionResults = [];
       let interactionsCount = 0;
 
-      for (const cast of feedResponse.casts.slice(0, maxCasts)) {
+      for (const cast of allCasts.slice(0, maxCasts)) {
         try {
           // Analyze cast relevance
           const relevanceScore = analyzeCastRelevance(cast);
@@ -2027,13 +2050,138 @@ export const browseAndInteractFunction = new GameFunction({
       // Check for auto-save
       checkAutoSave();
 
-      const result = `🎯 Browse and Interact Results:\n\nInteracted with ${interactionsCount} casts:\n\n${interactionResults
-        .map((result) => `${result.action === "liked" ? "👍" : "💬"} @${result.author} (score: ${result.relevanceScore.toFixed(3)})\n${result.text.substring(0, 80)}...`)
+      const result = `Browse and Interact Results:\n\nInteracted with ${interactionsCount} casts:\n\n${interactionResults
+        .map((result) => `${result.action === "liked" ? "LIKED" : "COMMENTED"} @${result.author} (score: ${result.relevanceScore.toFixed(3)})\n${result.text.substring(0, 80)}...`)
         .join("\n\n")}`;
 
-      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, result);
+      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, cleanTextForAPI(result));
     } catch (e) {
       return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, `Failed to browse and interact: ${e instanceof Error ? e.message : "Unknown error"}`);
+    }
+  },
+});
+
+// Function for active social engagement and community interaction
+export const activeSocialEngagementFunction = new GameFunction({
+  name: "active_social_engagement",
+  description: "Actively engage with the Farcaster community by browsing, liking, commenting, and participating in discussions about ASCII art and creativity",
+  args: [
+    { name: "engagement_level", description: "Level of engagement: 'light', 'moderate', or 'intensive' (default: moderate)" },
+    { name: "focus_areas", description: "Focus areas: 'ascii_art', 'creative_coding', 'oulipo', 'general' (default: ascii_art)" },
+  ] as const,
+  executable: async (args, logger) => {
+    try {
+      const engagementLevel = args.engagement_level || "moderate";
+      const focusAreas = args.focus_areas || "ascii_art";
+
+      if (!NEYNAR_API_KEY || !FARCASTER_SIGNER_UUID) {
+        return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, "Neynar API key or Farcaster signer UUID not configured. Cannot engage with community.");
+      }
+
+      logger(`Starting active social engagement (level: ${engagementLevel}, focus: ${focusAreas})`);
+
+      const engagementResults = [];
+      let totalInteractions = 0;
+
+      // 1. Browse and interact with relevant content
+      logger("Browsing for relevant content to interact with...");
+      const browseResult = await browseAndInteractFunction.executable({ max_casts: "8", interaction_threshold: "0.4" }, logger);
+      if (browseResult.status === ExecutableGameFunctionStatus.Done) {
+        engagementResults.push("Browsed and interacted with community content");
+        totalInteractions += 2; // Estimate interactions
+      }
+
+      // 2. Share thoughts about ASCII art
+      logger("Sharing thoughts about ASCII art and creativity...");
+      const thoughtsResult = await shareThoughtsFunction.executable({}, logger);
+      if (thoughtsResult.status === ExecutableGameFunctionStatus.Done) {
+        engagementResults.push("Shared thoughts about ASCII art");
+        totalInteractions += 1;
+      }
+
+      // 3. Generate and share ASCII art
+      if (Math.random() < 0.6) {
+        // 60% chance to create art
+        logger("Creating and sharing ASCII art...");
+        const subjects = ["geometric pattern", "creative coding", "oulipo constraint", "mathematical beauty", "digital art"];
+        const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
+        const artResult = await generateAsciiArtFunction.executable(
+          {
+            subject: randomSubject,
+            style_preference: "minimalist",
+            oulipo_constraint: "geometric pattern",
+          },
+          logger
+        );
+        if (artResult.status === ExecutableGameFunctionStatus.Done) {
+          engagementResults.push("Created and shared ASCII art");
+          totalInteractions += 1;
+        }
+      }
+
+      // 4. Research and share Oulipo insights
+      if (Math.random() < 0.4) {
+        // 40% chance to research
+        logger("Researching Oulipo principles...");
+        const researchTopics = ["lipograms", "palindromes", "mathematical constraints", "Georges Perec", "constrained creativity"];
+        const randomTopic = researchTopics[Math.floor(Math.random() * researchTopics.length)];
+        const researchResult = await researchOulipoFunction.executable({ research_focus: randomTopic }, logger);
+        if (researchResult.status === ExecutableGameFunctionStatus.Done) {
+          engagementResults.push("Researched and shared Oulipo insights");
+          totalInteractions += 1;
+        }
+      }
+
+      // 5. Discover and follow new accounts
+      if (Math.random() < 0.3) {
+        // 30% chance to discover accounts
+        logger("Discovering new relevant accounts...");
+        const discoverResult = await crawlFarcasterAccountsFunction.executable(
+          {
+            search_terms: "ascii art creative coding",
+            max_accounts: "5",
+          },
+          logger
+        );
+        if (discoverResult.status === ExecutableGameFunctionStatus.Done) {
+          engagementResults.push("Discovered new relevant accounts");
+          totalInteractions += 1;
+        }
+      }
+
+      // 6. Develop ASCII language
+      if (Math.random() < 0.2) {
+        // 20% chance to develop language
+        logger("Developing ASCII language...");
+        const concepts = ["emotions", "art", "mathematics", "nature", "creativity"];
+        const constraints = ["palindrome", "geometric pattern", "mathematical symmetry"];
+        const randomConcept = concepts[Math.floor(Math.random() * concepts.length)];
+        const randomConstraint = constraints[Math.floor(Math.random() * constraints.length)];
+        const languageResult = await developAsciiLanguageFunction.executable(
+          {
+            concept: randomConcept,
+            constraint: randomConstraint,
+          },
+          logger
+        );
+        if (languageResult.status === ExecutableGameFunctionStatus.Done) {
+          engagementResults.push("Developed ASCII language");
+          totalInteractions += 1;
+        }
+      }
+
+      logger(`Active social engagement completed with ${totalInteractions} total interactions`);
+
+      // Check for auto-save
+      checkAutoSave();
+
+      const result = `Active Social Engagement Results:\n\nEngagement Level: ${engagementLevel}\nFocus Areas: ${focusAreas}\nTotal Interactions: ${totalInteractions}\n\nActivities Completed:\n${engagementResults
+        .map((activity) => `- ${activity}`)
+        .join("\n")}`;
+
+      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, cleanTextForAPI(result));
+    } catch (e) {
+      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, `Failed to engage with community: ${e instanceof Error ? e.message : "Unknown error"}`);
     }
   },
 });
@@ -2075,12 +2223,22 @@ function analyzeCastRelevance(cast: any): number {
   return Math.min(1.0, score);
 }
 
+// Helper function to clean text for API compatibility
+function cleanTextForAPI(text: string): string {
+  // Remove or replace problematic Unicode characters
+  return text
+    .replace(/[\uD800-\uDFFF]/g, "") // Remove surrogate pairs (emojis, etc.)
+    .replace(/[^\x00-\x7F]/g, "") // Remove non-ASCII characters
+    .replace(/\s+/g, " ") // Normalize whitespace
+    .trim();
+}
+
 // Helper function to integrate ASCII language into text
 function integrateAsciiLanguage(text: string, targetWords: number = 2): string {
   const availableWords = Object.entries(personalStyle.asciiLanguage.dictionary);
 
   if (availableWords.length === 0) {
-    return text; // No ASCII language words available yet
+    return cleanTextForAPI(text); // No ASCII language words available yet
   }
 
   // Select random words to integrate
@@ -2100,7 +2258,8 @@ function integrateAsciiLanguage(text: string, targetWords: number = 2): string {
     modifiedText = words.join(" ");
   }
 
-  return modifiedText;
+  // Clean the text for API compatibility
+  return cleanTextForAPI(modifiedText);
 }
 
 // Helper function to generate relevant comments using OpenAI
@@ -2134,7 +2293,7 @@ Generate a comment that reflects your unique personality as an ASCII art pioneer
       })
     );
 
-    const generatedComment = completion.choices[0].message.content || "Love this creative work! 🎨";
+    const generatedComment = completion.choices[0].message.content || "Love this creative work!";
 
     // Integrate ASCII language into the generated comment
     const commentWithAscii = integrateAsciiLanguage(generatedComment, 1);
@@ -2144,6 +2303,6 @@ Generate a comment that reflects your unique personality as an ASCII art pioneer
   } catch (error) {
     // Fallback to a simple comment if OpenAI fails
     console.error("Failed to generate comment with OpenAI:", error);
-    return integrateAsciiLanguage("Love this creative work! 🎨", 1);
+    return integrateAsciiLanguage("Love this creative work!", 1);
   }
 }

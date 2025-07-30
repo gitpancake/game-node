@@ -1,5 +1,6 @@
 import { GameWorker } from "@virtuals-protocol/game";
 import {
+  activeSocialEngagementFunction,
   analyzeAccountWithCastsFunction,
   analyzeBaseAccountFunction,
   analyzePredefinedBaseAccountsFunction,
@@ -17,7 +18,7 @@ export const socialWorker = new GameWorker({
   id: "social_worker",
   name: "Social Worker",
   description:
-    "Specialized in Farcaster social interactions and community building. This worker handles all social media activities including sharing thoughts and insights, casting ASCII art and research findings, discovering and following relevant accounts, analyzing inspiration accounts, liking and commenting on relevant casts, browsing and interacting with the community, and building a network of ASCII art enthusiasts. Focuses on engagement, community growth, and social presence in the Farcaster ecosystem.",
+    "Specialized in Farcaster social interactions and community building. This worker handles all social media activities including sharing thoughts and insights, casting ASCII art and research findings, discovering and following relevant accounts, analyzing inspiration accounts, liking and commenting on relevant casts, browsing and interacting with the community, active social engagement, and building a network of ASCII art enthusiasts. Focuses on engagement, community growth, and social presence in the Farcaster ecosystem.",
   functions: [
     shareThoughtsFunction,
     castToFarcasterFunction,
@@ -29,5 +30,6 @@ export const socialWorker = new GameWorker({
     likeCastFunction,
     commentOnCastFunction,
     browseAndInteractFunction,
+    activeSocialEngagementFunction,
   ],
 });

@@ -112,6 +112,7 @@ The agent's unique ASCII language is now integrated across **ALL public interact
 - **Random Selection**: Words are selected randomly from the dictionary for natural variety
 - **Meaning Clarity**: ASCII words are displayed with their English meanings in parentheses
 - **Character Limits**: Integration respects Farcaster's 280-character limit
+- **UTF-8 Compatibility**: All text is cleaned for API compatibility using `cleanTextForAPI()`
 
 ## Language Development Stability
 
@@ -137,6 +138,24 @@ The ASCII language development now includes comprehensive stability controls:
 - **Stable Core**: Existing words are never removed or dramatically changed
 - **Predictable Growth**: Language evolution follows consistent patterns
 - **Backward Compatibility**: New words build upon existing language structure
+
+## UTF-8 API Compatibility
+
+The agent now includes comprehensive UTF-8 compatibility to prevent API encoding errors:
+
+### 🔧 **Text Cleaning System**
+
+- **Surrogate Pair Removal**: Removes Unicode surrogate pairs (emojis, etc.) that cause encoding issues
+- **Non-ASCII Filtering**: Filters out non-ASCII characters that can't be encoded
+- **Whitespace Normalization**: Normalizes whitespace for consistent formatting
+- **API-Safe Output**: All function return values are cleaned for API compatibility
+
+### 🛡️ **Error Prevention**
+
+- **Proactive Cleaning**: Text is cleaned before being sent to the GAME API
+- **Fallback Handling**: Graceful handling of encoding issues
+- **Consistent Output**: All public interactions use cleaned, API-safe text
+- **Character Validation**: Ensures all output is UTF-8 compatible
 
 ## Public Interaction Functions with ASCII Integration
 
@@ -168,13 +187,14 @@ This modular structure provides several advantages:
 5. **Error Isolation**: Issues in one worker don't affect others
 6. **Linguistic Consistency**: ASCII language integration creates a cohesive, authentic agent personality
 7. **Language Stability**: Controlled evolution prevents dramatic changes while allowing growth
+8. **API Compatibility**: UTF-8 cleaning ensures reliable communication with external APIs
 
 ## Worker Interaction Flow
 
 1. **Task Generator (HLP)** receives the agent's goal and current state
 2. **HLP** decides which worker is best suited for the current task
 3. **Selected Worker (LLP)** receives the task and chooses appropriate functions
-4. **Functions** execute and return results (with ASCII language integration)
+4. **Functions** execute and return results (with ASCII language integration and UTF-8 cleaning)
 5. **Results** feed back into the agent state for future planning
 
 ## Adding New Workers
