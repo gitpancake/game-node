@@ -2,7 +2,7 @@ import { activity_agent } from "./agent";
 import { displayCastHistory, getMemoryStats, saveMemoryNow } from "./functions";
 
 let lastThoughtTime = 0;
-const THOUGHT_INTERVAL = parseInt(process.env.THOUGHT_INTERVAL || "30000"); // 30 seconds between thoughts
+const THOUGHT_INTERVAL = parseInt(process.env.THOUGHT_INTERVAL || "300000"); // 5 minutes between outreach activities
 let lastApiCallTime = 0;
 const API_RATE_LIMIT = parseInt(process.env.API_RATE_LIMIT || "10000"); // 10 seconds between API calls
 
@@ -73,7 +73,7 @@ async function main() {
     }
 
     console.log("🎨 ASCII Art Enthusiast Agent Started!");
-    console.log("Agent will share thoughts every 30 seconds and perform ASCII art activities.");
+    console.log("Agent will perform outreach every 5 minutes and cast 3-4 times per day.");
     console.log("Rate limiting enabled to prevent API throttling.");
     console.log("Press Ctrl+C to stop the agent.\n");
 
@@ -124,17 +124,17 @@ async function main() {
       }
 
       try {
-        // Check if it's time for active social engagement (every 30 seconds)
+        // Check if it's time for outreach (every 5 minutes)
         if (currentTime - lastThoughtTime >= THOUGHT_INTERVAL) {
-          console.log("⏰ Time for active social engagement!");
+          console.log("⏰ Time for outreach and discovery!");
           lastThoughtTime = currentTime;
 
-          // Trigger active social engagement
+          // Trigger outreach and discovery (but not necessarily casting)
           await activity_agent.step({
             verbose: true,
           });
         } else {
-          // Regular agent step for other activities
+          // Regular agent step for other activities (research, language development, etc.)
           await activity_agent.step({ verbose: true });
         }
 

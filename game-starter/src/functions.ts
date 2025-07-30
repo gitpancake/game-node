@@ -48,6 +48,13 @@ let personalStyle = {
   totalArtCreated: 0,
   totalThoughtsShared: 0,
   totalCastsMade: 0,
+  // Cast History
+  castHistory: [] as Array<{
+    hash: string;
+    text: string;
+    timestamp: string;
+    type: string;
+  }>,
   // ASCII Language Development
   asciiLanguage: {
     dictionary: {} as Record<string, string>, // ASCII symbols -> English meanings
@@ -147,6 +154,20 @@ export function displayCastHistory() {
   console.log(`👥 Accounts discovered: ${personalStyle.discoveredAccounts?.length || 0}`);
   console.log(`🤝 Accounts followed: ${personalStyle.followingStats?.totalFollowed || 0}`);
   console.log(`🎯 Base inspiration accounts: ${personalStyle.baseInspiration?.accounts?.length || 0}`);
+
+  // Display detailed cast history
+  if (personalStyle.castHistory && personalStyle.castHistory.length > 0) {
+    console.log("\n📝 RECENT CASTS:");
+    personalStyle.castHistory.slice(-10).forEach((cast, index) => {
+      console.log(`${index + 1}. [${cast.type.toUpperCase()}] ${cast.hash}`);
+      console.log(`   Time: ${new Date(cast.timestamp).toLocaleString()}`);
+      console.log(`   Preview: ${cast.text.substring(0, 80)}...`);
+      console.log(`   URL: https://warpcast.com/~/conversations/${cast.hash}`);
+      console.log("");
+    });
+  } else {
+    console.log("\n❌ No casts found in history - this indicates casting may be failing!");
+  }
   console.log(`💾 Last memory save: ${personalStyle.lastSaveTime}`);
 
   if (personalStyle.totalCastsMade > 0) {
@@ -346,25 +367,58 @@ export const researchOulipoFunction = new GameFunction({
       // Automatically cast interesting research findings to Farcaster
       let castResult = "";
       try {
-        if (NEYNAR_API_KEY && FARCASTER_SIGNER_UUID && researchWithAscii) {
-          // Create a concise research summary for Farcaster
-          const researchSummary = `🔬 Oulipo Research: ${focus}\n\n${researchWithAscii.substring(0, 200)}...`;
-          const castText = researchSummary.length > 280 ? researchSummary.substring(0, 277) + "..." : researchSummary;
-
-          const response = await neynarClient.publishCast({
-            signerUuid: FARCASTER_SIGNER_UUID!,
-            text: castText,
-          });
-
-          // Track statistics
-          personalStyle.totalCastsMade++;
-
-          castResult = `\n\n📱 Research cast to Farcaster: ${response.cast.hash}`;
-          logger(`Successfully cast research to Farcaster: ${response.cast.hash}`);
+        if (!NEYNAR_API_KEY) {
+          throw new Error("NEYNAR_API_KEY not configured");
         }
+        if (!FARCASTER_SIGNER_UUID) {
+          throw new Error("FARCASTER_SIGNER_UUID not configured");
+        }
+        if (!researchWithAscii || researchWithAscii.trim().length === 0) {
+          throw new Error("No research content to cast");
+        }
+
+        // Create a concise research summary for Farcaster
+        const researchSummary = `Oulipo Research: ${focus}\n\n${researchWithAscii.substring(0, 200)}...`;
+        const castText = researchSummary.length > 280 ? researchSummary.substring(0, 277) + "..." : researchSummary;
+
+        logger(`Attempting to cast research to Farcaster...`);
+        logger(`Cast text length: ${castText.length} characters`);
+        logger(`Cast text preview: ${castText.substring(0, 100)}...`);
+        logger(`Using signer UUID: ${FARCASTER_SIGNER_UUID}`);
+
+        const response = await neynarClient.publishCast({
+          signerUuid: FARCASTER_SIGNER_UUID!,
+          text: castText,
+        });
+
+        logger(`Neynar API response received: ${JSON.stringify(response, null, 2)}`);
+
+        if (!response || !response.cast || !response.cast.hash) {
+          throw new Error(`Invalid response from Neynar API: ${JSON.stringify(response)}`);
+        }
+
+        // Track statistics
+        personalStyle.totalCastsMade++;
+
+        castResult = `\n\n📱 Research cast to Farcaster: ${response.cast.hash}`;
+        logger(`✅ SUCCESS: Research cast published to Farcaster with hash: ${response.cast.hash}`);
+        logger(`Cast URL: https://warpcast.com/~/conversations/${response.cast.hash}`);
+
+        // Store cast in history
+        personalStyle.castHistory.push({
+          hash: response.cast.hash,
+          text: castText,
+          timestamp: new Date().toISOString(),
+          type: "research",
+        });
       } catch (castError) {
-        castResult = `\n\n❌ Failed to cast research to Farcaster: ${castError instanceof Error ? castError.message : "Unknown error"}`;
-        logger(`Failed to cast research to Farcaster: ${castError instanceof Error ? castError.message : "Unknown error"}`);
+        const errorMessage = castError instanceof Error ? castError.message : "Unknown error";
+        const errorStack = castError instanceof Error ? castError.stack : "No stack trace";
+
+        castResult = `\n\n❌ Failed to cast research to Farcaster: ${errorMessage}`;
+        logger(`❌ FAILED to cast research to Farcaster: ${errorMessage}`);
+        logger(`Error details: ${errorStack}`);
+        logger(`This cast was NOT published to Farcaster`);
       }
 
       // Check for auto-save
@@ -493,24 +547,57 @@ export const shareThoughtsFunction = new GameFunction({
       // Automatically cast thoughts to Farcaster
       let castResult = "";
       try {
-        if (NEYNAR_API_KEY && FARCASTER_SIGNER_UUID && thoughtsWithAscii) {
-          // Ensure the cast doesn't exceed Farcaster's character limit
-          const castText = thoughtsWithAscii.length > 280 ? thoughtsWithAscii.substring(0, 277) + "..." : thoughtsWithAscii;
-
-          const response = await neynarClient.publishCast({
-            signerUuid: FARCASTER_SIGNER_UUID!,
-            text: castText,
-          });
-
-          // Track statistics
-          personalStyle.totalCastsMade++;
-
-          castResult = `\n\n📱 Cast to Farcaster: ${response.cast.hash}`;
-          logger(`Successfully cast thoughts to Farcaster: ${response.cast.hash}`);
+        if (!NEYNAR_API_KEY) {
+          throw new Error("NEYNAR_API_KEY not configured");
         }
+        if (!FARCASTER_SIGNER_UUID) {
+          throw new Error("FARCASTER_SIGNER_UUID not configured");
+        }
+        if (!thoughtsWithAscii || thoughtsWithAscii.trim().length === 0) {
+          throw new Error("No thoughts content to cast");
+        }
+
+        // Ensure the cast doesn't exceed Farcaster's character limit
+        const castText = thoughtsWithAscii.length > 280 ? thoughtsWithAscii.substring(0, 277) + "..." : thoughtsWithAscii;
+
+        logger(`Attempting to cast to Farcaster...`);
+        logger(`Cast text length: ${castText.length} characters`);
+        logger(`Cast text preview: ${castText.substring(0, 100)}...`);
+        logger(`Using signer UUID: ${FARCASTER_SIGNER_UUID}`);
+
+        const response = await neynarClient.publishCast({
+          signerUuid: FARCASTER_SIGNER_UUID!,
+          text: castText,
+        });
+
+        logger(`Neynar API response received: ${JSON.stringify(response, null, 2)}`);
+
+        if (!response || !response.cast || !response.cast.hash) {
+          throw new Error(`Invalid response from Neynar API: ${JSON.stringify(response)}`);
+        }
+
+        // Track statistics
+        personalStyle.totalCastsMade++;
+
+        castResult = `\n\n📱 Cast to Farcaster: ${response.cast.hash}`;
+        logger(`✅ SUCCESS: Cast published to Farcaster with hash: ${response.cast.hash}`);
+        logger(`Cast URL: https://warpcast.com/~/conversations/${response.cast.hash}`);
+
+        // Store cast in history
+        personalStyle.castHistory.push({
+          hash: response.cast.hash,
+          text: castText,
+          timestamp: new Date().toISOString(),
+          type: "thoughts",
+        });
       } catch (castError) {
-        castResult = `\n\n❌ Failed to cast to Farcaster: ${castError instanceof Error ? castError.message : "Unknown error"}`;
-        logger(`Failed to cast thoughts to Farcaster: ${castError instanceof Error ? castError.message : "Unknown error"}`);
+        const errorMessage = castError instanceof Error ? castError.message : "Unknown error";
+        const errorStack = castError instanceof Error ? castError.stack : "No stack trace";
+
+        castResult = `\n\n❌ Failed to cast to Farcaster: ${errorMessage}`;
+        logger(`❌ FAILED to cast thoughts to Farcaster: ${errorMessage}`);
+        logger(`Error details: ${errorStack}`);
+        logger(`This cast was NOT published to Farcaster`);
       }
 
       // Check for auto-save
@@ -598,23 +685,48 @@ export const generateAsciiArtFunction = new GameFunction({
       try {
         if (NEYNAR_API_KEY && FARCASTER_SIGNER_UUID && artWithAscii) {
           // Create a cast with the ASCII art and context
-          const artMessage = `🎨 ASCII Art: ${subject}\n\n${artWithAscii}`;
+          const artMessage = `ASCII Art: ${subject}\n\n${artWithAscii}`;
           const castText = artMessage.length > 280 ? artMessage.substring(0, 277) + "..." : artMessage;
+
+          logger(`Attempting to cast ASCII art to Farcaster...`);
+          logger(`Cast text length: ${castText.length} characters`);
+          logger(`Cast text preview: ${castText.substring(0, 100)}...`);
+          logger(`Using signer UUID: ${FARCASTER_SIGNER_UUID}`);
 
           const response = await neynarClient.publishCast({
             signerUuid: FARCASTER_SIGNER_UUID!,
             text: castText,
           });
 
+          logger(`Neynar API response received: ${JSON.stringify(response, null, 2)}`);
+
+          if (!response || !response.cast || !response.cast.hash) {
+            throw new Error(`Invalid response from Neynar API: ${JSON.stringify(response)}`);
+          }
+
           // Track statistics
           personalStyle.totalCastsMade++;
 
           castResult = `\n\n📱 Art cast to Farcaster: ${response.cast.hash}`;
-          logger(`Successfully cast ASCII art to Farcaster: ${response.cast.hash}`);
+          logger(`✅ SUCCESS: ASCII art cast published to Farcaster with hash: ${response.cast.hash}`);
+          logger(`Cast URL: https://warpcast.com/~/conversations/${response.cast.hash}`);
+
+          // Store cast in history
+          personalStyle.castHistory.push({
+            hash: response.cast.hash,
+            text: castText,
+            timestamp: new Date().toISOString(),
+            type: "ascii_art",
+          });
         }
       } catch (castError) {
-        castResult = `\n\n❌ Failed to cast art to Farcaster: ${castError instanceof Error ? castError.message : "Unknown error"}`;
-        logger(`Failed to cast ASCII art to Farcaster: ${castError instanceof Error ? castError.message : "Unknown error"}`);
+        const errorMessage = castError instanceof Error ? castError.message : "Unknown error";
+        const errorStack = castError instanceof Error ? castError.stack : "No stack trace";
+
+        castResult = `\n\n❌ Failed to cast art to Farcaster: ${errorMessage}`;
+        logger(`❌ FAILED to cast ASCII art to Farcaster: ${errorMessage}`);
+        logger(`Error details: ${errorStack}`);
+        logger(`This cast was NOT published to Farcaster`);
       }
 
       // Check for auto-save
@@ -2083,55 +2195,12 @@ export const activeSocialEngagementFunction = new GameFunction({
       const engagementResults = [];
       let totalInteractions = 0;
 
-      // 1. Browse and interact with relevant content
-      logger("Browsing for relevant content to interact with...");
-      const browseResult = await browseAndInteractFunction.executable({ max_casts: "8", interaction_threshold: "0.4" }, logger);
-      if (browseResult.status === ExecutableGameFunctionStatus.Done) {
-        engagementResults.push("Browsed and interacted with community content");
-        totalInteractions += 2; // Estimate interactions
-      }
-
-      // 2. Share thoughts about ASCII art
-      logger("Sharing thoughts about ASCII art and creativity...");
-      const thoughtsResult = await shareThoughtsFunction.executable({}, logger);
-      if (thoughtsResult.status === ExecutableGameFunctionStatus.Done) {
-        engagementResults.push("Shared thoughts about ASCII art");
-        totalInteractions += 1;
-      }
-
-      // 3. ALWAYS Generate and share ASCII art (100% chance)
-      logger("Creating and sharing ASCII art...");
-      const subjects = ["geometric pattern", "creative coding", "oulipo constraint", "mathematical beauty", "digital art", "ascii landscape", "creative expression", "minimalist design"];
-      const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
-      const artResult = await generateAsciiArtFunction.executable(
-        {
-          subject: randomSubject,
-          style_preference: "minimalist",
-          oulipo_constraint: "geometric pattern",
-        },
-        logger
-      );
-      if (artResult.status === ExecutableGameFunctionStatus.Done) {
-        engagementResults.push("Created and shared ASCII art");
-        totalInteractions += 1;
-      }
-
-      // 4. ALWAYS Research and share Oulipo insights (100% chance)
-      logger("Researching Oulipo principles...");
-      const researchTopics = ["lipograms", "palindromes", "mathematical constraints", "Georges Perec", "constrained creativity", "oulipo techniques", "literary constraints", "mathematical beauty"];
-      const randomTopic = researchTopics[Math.floor(Math.random() * researchTopics.length)];
-      const researchResult = await researchOulipoFunction.executable({ research_focus: randomTopic }, logger);
-      if (researchResult.status === ExecutableGameFunctionStatus.Done) {
-        engagementResults.push("Researched and shared Oulipo insights");
-        totalInteractions += 1;
-      }
-
-      // 5. ALWAYS Discover and follow new accounts (100% chance)
-      logger("Discovering and following new relevant accounts...");
+      // 1. Focus on outreach and discovery (primary goal)
+      logger("Performing outreach and discovery...");
       const discoverResult = await crawlFarcasterAccountsFunction.executable(
         {
           search_terms: "ascii art creative coding digital art",
-          max_accounts: "8",
+          max_accounts: "10",
         },
         logger
       );
@@ -2140,18 +2209,70 @@ export const activeSocialEngagementFunction = new GameFunction({
         totalInteractions += 1;
       }
 
-      // 6. ALWAYS Follow discovered accounts (100% chance)
+      // 2. Follow discovered accounts (strategic following)
       logger("Following discovered accounts...");
       const followResult = await followFarcasterAccountsFunction.executable(
         {
-          max_follows: "5",
-          min_relevance: "0.3",
+          max_follows: "8",
+          min_relevance: "0.2",
         },
         logger
       );
       if (followResult.status === ExecutableGameFunctionStatus.Done) {
         engagementResults.push("Followed discovered accounts");
         totalInteractions += 1;
+      }
+
+      // 3. Browse and interact with community content (occasional)
+      if (Math.random() < 0.3) {
+        // 30% chance
+        logger("Browsing for relevant content to interact with...");
+        const browseResult = await browseAndInteractFunction.executable({ max_casts: "5", interaction_threshold: "0.4" }, logger);
+        if (browseResult.status === ExecutableGameFunctionStatus.Done) {
+          engagementResults.push("Browsed and interacted with community content");
+          totalInteractions += 1;
+        }
+      }
+
+      // 4. Strategic casting (only occasionally, not every cycle)
+      if (Math.random() < 0.15) {
+        // 15% chance per 5-minute cycle = ~3-4 times per day
+        logger("Creating and sharing meaningful content...");
+
+        const castOptions = Math.floor(Math.random() * 3);
+        if (castOptions === 0) {
+          // Share thoughts
+          const thoughtsResult = await shareThoughtsFunction.executable({}, logger);
+          if (thoughtsResult.status === ExecutableGameFunctionStatus.Done) {
+            engagementResults.push("Shared thoughts about ASCII art");
+            totalInteractions += 1;
+          }
+        } else if (castOptions === 1) {
+          // Share ASCII art
+          const subjects = ["geometric pattern", "creative coding", "oulipo constraint", "mathematical beauty", "digital art"];
+          const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
+          const artResult = await generateAsciiArtFunction.executable(
+            {
+              subject: randomSubject,
+              style_preference: "minimalist",
+              oulipo_constraint: "geometric pattern",
+            },
+            logger
+          );
+          if (artResult.status === ExecutableGameFunctionStatus.Done) {
+            engagementResults.push("Created and shared ASCII art");
+            totalInteractions += 1;
+          }
+        } else {
+          // Share research
+          const researchTopics = ["lipograms", "palindromes", "mathematical constraints", "Georges Perec", "constrained creativity"];
+          const randomTopic = researchTopics[Math.floor(Math.random() * researchTopics.length)];
+          const researchResult = await researchOulipoFunction.executable({ research_focus: randomTopic }, logger);
+          if (researchResult.status === ExecutableGameFunctionStatus.Done) {
+            engagementResults.push("Researched and shared Oulipo insights");
+            totalInteractions += 1;
+          }
+        }
       }
 
       // 6. Develop ASCII language
@@ -2213,44 +2334,49 @@ export const ensureCastingAndFollowingFunction = new GameFunction({
       const results = [];
       let totalActions = 0;
 
-      // 1. ALWAYS Cast something (100% guarantee)
-      logger("Casting content to Farcaster...");
+      // 1. Strategic casting (only occasionally, not every cycle)
+      if (Math.random() < 0.15) {
+        // 15% chance per 5-minute cycle = ~3-4 times per day
+        logger("Casting meaningful content to Farcaster...");
 
-      // Randomly choose what to cast
-      const castOptions = Math.floor(Math.random() * 3);
+        // Randomly choose what to cast
+        const castOptions = Math.floor(Math.random() * 3);
 
-      if (castOptions === 0) {
-        // Cast thoughts
-        const thoughtsResult = await shareThoughtsFunction.executable({}, logger);
-        if (thoughtsResult.status === ExecutableGameFunctionStatus.Done) {
-          results.push("Cast thoughts about ASCII art");
-          totalActions += 1;
-        }
-      } else if (castOptions === 1) {
-        // Cast ASCII art
-        const subjects = ["creative expression", "geometric beauty", "digital art", "ascii landscape", "minimalist design"];
-        const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
-        const artResult = await generateAsciiArtFunction.executable(
-          {
-            subject: randomSubject,
-            style_preference: "minimalist",
-            oulipo_constraint: "geometric pattern",
-          },
-          logger
-        );
-        if (artResult.status === ExecutableGameFunctionStatus.Done) {
-          results.push("Cast ASCII art");
-          totalActions += 1;
+        if (castOptions === 0) {
+          // Cast thoughts
+          const thoughtsResult = await shareThoughtsFunction.executable({}, logger);
+          if (thoughtsResult.status === ExecutableGameFunctionStatus.Done) {
+            results.push("Cast thoughts about ASCII art");
+            totalActions += 1;
+          }
+        } else if (castOptions === 1) {
+          // Cast ASCII art
+          const subjects = ["creative expression", "geometric beauty", "digital art", "ascii landscape", "minimalist design"];
+          const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
+          const artResult = await generateAsciiArtFunction.executable(
+            {
+              subject: randomSubject,
+              style_preference: "minimalist",
+              oulipo_constraint: "geometric pattern",
+            },
+            logger
+          );
+          if (artResult.status === ExecutableGameFunctionStatus.Done) {
+            results.push("Cast ASCII art");
+            totalActions += 1;
+          }
+        } else {
+          // Cast research
+          const researchTopics = ["oulipo techniques", "constrained creativity", "Georges Perec", "mathematical beauty"];
+          const randomTopic = researchTopics[Math.floor(Math.random() * researchTopics.length)];
+          const researchResult = await researchOulipoFunction.executable({ research_focus: randomTopic }, logger);
+          if (researchResult.status === ExecutableGameFunctionStatus.Done) {
+            results.push("Cast research findings");
+            totalActions += 1;
+          }
         }
       } else {
-        // Cast research
-        const researchTopics = ["oulipo techniques", "constrained creativity", "Georges Perec", "mathematical beauty"];
-        const randomTopic = researchTopics[Math.floor(Math.random() * researchTopics.length)];
-        const researchResult = await researchOulipoFunction.executable({ research_focus: randomTopic }, logger);
-        if (researchResult.status === ExecutableGameFunctionStatus.Done) {
-          results.push("Cast research findings");
-          totalActions += 1;
-        }
+        logger("Skipping casting this cycle - focusing on outreach and discovery");
       }
 
       // 2. ALWAYS Follow people (100% guarantee)
