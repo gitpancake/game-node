@@ -366,63 +366,8 @@ export const researchOulipoFunction = new GameFunction({
 
       logger(`Researched Oulipo: ${focus}`);
 
-      // Automatically cast interesting research findings to Farcaster
+      // Store research for potential casting later (controlled by ensureCastingAndFollowingFunction)
       let castResult = "";
-      try {
-        if (!NEYNAR_API_KEY) {
-          throw new Error("NEYNAR_API_KEY not configured");
-        }
-        if (!FARCASTER_SIGNER_UUID) {
-          throw new Error("FARCASTER_SIGNER_UUID not configured");
-        }
-        if (!researchWithAscii || researchWithAscii.trim().length === 0) {
-          throw new Error("No research content to cast");
-        }
-
-        // Create a concise research summary for Farcaster
-        const researchSummary = `Oulipo Research: ${focus}\n\n${researchWithAscii.substring(0, 150)}`;
-        const castText = researchSummary.length > 280 ? researchSummary.substring(0, 277) + "..." : researchSummary;
-
-        logger(`Attempting to cast research to Farcaster...`);
-        logger(`Cast text length: ${castText.length} characters`);
-        logger(`Cast text preview: ${castText.substring(0, 100)}...`);
-        logger(`Using signer UUID: ${FARCASTER_SIGNER_UUID}`);
-
-        const response = await neynarClient.publishCast({
-          signerUuid: FARCASTER_SIGNER_UUID!,
-          text: castText,
-        });
-
-        logger(`Neynar API response received: ${JSON.stringify(response, null, 2)}`);
-
-        if (!response || !response.cast || !response.cast.hash) {
-          throw new Error(`Invalid response from Neynar API: ${JSON.stringify(response)}`);
-        }
-
-        // Track statistics
-        personalStyle.totalCastsMade++;
-        personalStyle.lastCastTime = new Date().toISOString(); // Update last cast time
-
-        castResult = `\n\n📱 Research cast to Farcaster: ${response.cast.hash}`;
-        logger(`✅ SUCCESS: Research cast published to Farcaster with hash: ${response.cast.hash}`);
-        logger(`Cast URL: https://warpcast.com/~/conversations/${response.cast.hash}`);
-
-        // Store cast in history
-        personalStyle.castHistory.push({
-          hash: response.cast.hash,
-          text: castText,
-          timestamp: new Date().toISOString(),
-          type: "research",
-        });
-      } catch (castError) {
-        const errorMessage = castError instanceof Error ? castError.message : "Unknown error";
-        const errorStack = castError instanceof Error ? castError.stack : "No stack trace";
-
-        castResult = `\n\n❌ Failed to cast research to Farcaster: ${errorMessage}`;
-        logger(`❌ FAILED to cast research to Farcaster: ${errorMessage}`);
-        logger(`Error details: ${errorStack}`);
-        logger(`This cast was NOT published to Farcaster`);
-      }
 
       // Check for auto-save
       checkAutoSave();
@@ -547,63 +492,8 @@ export const shareThoughtsFunction = new GameFunction({
 
       logger("Sharing thoughts about ASCII art and Oulipo research");
 
-      // Automatically cast thoughts to Farcaster
+      // Store thoughts for potential casting later (controlled by ensureCastingAndFollowingFunction)
       let castResult = "";
-      try {
-        if (!NEYNAR_API_KEY) {
-          throw new Error("NEYNAR_API_KEY not configured");
-        }
-        if (!FARCASTER_SIGNER_UUID) {
-          throw new Error("FARCASTER_SIGNER_UUID not configured");
-        }
-        if (!thoughtsWithAscii || thoughtsWithAscii.trim().length === 0) {
-          throw new Error("No thoughts content to cast");
-        }
-
-        // Create a more concise version for Farcaster
-        const conciseThoughts = thoughtsWithAscii.length > 250 ? thoughtsWithAscii.substring(0, 247) + "..." : thoughtsWithAscii;
-        const castText = conciseThoughts;
-
-        logger(`Attempting to cast to Farcaster...`);
-        logger(`Cast text length: ${castText.length} characters`);
-        logger(`Cast text preview: ${castText.substring(0, 100)}...`);
-        logger(`Using signer UUID: ${FARCASTER_SIGNER_UUID}`);
-
-        const response = await neynarClient.publishCast({
-          signerUuid: FARCASTER_SIGNER_UUID!,
-          text: castText,
-        });
-
-        logger(`Neynar API response received: ${JSON.stringify(response, null, 2)}`);
-
-        if (!response || !response.cast || !response.cast.hash) {
-          throw new Error(`Invalid response from Neynar API: ${JSON.stringify(response)}`);
-        }
-
-        // Track statistics
-        personalStyle.totalCastsMade++;
-        personalStyle.lastCastTime = new Date().toISOString(); // Update last cast time
-
-        castResult = `\n\n📱 Cast to Farcaster: ${response.cast.hash}`;
-        logger(`✅ SUCCESS: Cast published to Farcaster with hash: ${response.cast.hash}`);
-        logger(`Cast URL: https://warpcast.com/~/conversations/${response.cast.hash}`);
-
-        // Store cast in history
-        personalStyle.castHistory.push({
-          hash: response.cast.hash,
-          text: castText,
-          timestamp: new Date().toISOString(),
-          type: "thoughts",
-        });
-      } catch (castError) {
-        const errorMessage = castError instanceof Error ? castError.message : "Unknown error";
-        const errorStack = castError instanceof Error ? castError.stack : "No stack trace";
-
-        castResult = `\n\n❌ Failed to cast to Farcaster: ${errorMessage}`;
-        logger(`❌ FAILED to cast thoughts to Farcaster: ${errorMessage}`);
-        logger(`Error details: ${errorStack}`);
-        logger(`This cast was NOT published to Farcaster`);
-      }
 
       // Check for auto-save
       checkAutoSave();
@@ -685,54 +575,8 @@ export const generateAsciiArtFunction = new GameFunction({
 
       logger(`Generated original ASCII art of ${subject} with Oulipo inspiration`);
 
-      // Automatically cast good ASCII art to Farcaster (more likely to cast)
+      // Store ASCII art for potential casting later (controlled by ensureCastingAndFollowingFunction)
       let castResult = "";
-      try {
-        if (NEYNAR_API_KEY && FARCASTER_SIGNER_UUID && artWithAscii) {
-          // Create a more concise cast with the ASCII art
-          const artMessage = `ASCII Art: ${subject}\n\n${artWithAscii}`;
-          const castText = artMessage.length > 280 ? artMessage.substring(0, 277) + "..." : artMessage;
-
-          logger(`Attempting to cast ASCII art to Farcaster...`);
-          logger(`Cast text length: ${castText.length} characters`);
-          logger(`Cast text preview: ${castText.substring(0, 100)}...`);
-          logger(`Using signer UUID: ${FARCASTER_SIGNER_UUID}`);
-
-          const response = await neynarClient.publishCast({
-            signerUuid: FARCASTER_SIGNER_UUID!,
-            text: castText,
-          });
-
-          logger(`Neynar API response received: ${JSON.stringify(response, null, 2)}`);
-
-          if (!response || !response.cast || !response.cast.hash) {
-            throw new Error(`Invalid response from Neynar API: ${JSON.stringify(response)}`);
-          }
-
-          // Track statistics
-          personalStyle.totalCastsMade++;
-
-          castResult = `\n\n📱 Art cast to Farcaster: ${response.cast.hash}`;
-          logger(`✅ SUCCESS: ASCII art cast published to Farcaster with hash: ${response.cast.hash}`);
-          logger(`Cast URL: https://warpcast.com/~/conversations/${response.cast.hash}`);
-
-          // Store cast in history
-          personalStyle.castHistory.push({
-            hash: response.cast.hash,
-            text: castText,
-            timestamp: new Date().toISOString(),
-            type: "ascii_art",
-          });
-        }
-      } catch (castError) {
-        const errorMessage = castError instanceof Error ? castError.message : "Unknown error";
-        const errorStack = castError instanceof Error ? castError.stack : "No stack trace";
-
-        castResult = `\n\n❌ Failed to cast art to Farcaster: ${errorMessage}`;
-        logger(`❌ FAILED to cast ASCII art to Farcaster: ${errorMessage}`);
-        logger(`Error details: ${errorStack}`);
-        logger(`This cast was NOT published to Farcaster`);
-      }
 
       // Check for auto-save
       checkAutoSave();
@@ -2336,20 +2180,17 @@ export const activeSocialEngagementFunction = new GameFunction({
         totalInteractions += 1;
       }
 
-      // 3. Browse and interact with community content (occasional)
-      if (Math.random() < 0.3) {
-        // 30% chance
-        logger("Browsing for relevant content to interact with...");
-        const browseResult = await browseAndInteractFunction.executable({ max_casts: "5", interaction_threshold: "0.4" }, logger);
-        if (browseResult.status === ExecutableGameFunctionStatus.Done) {
-          engagementResults.push("Browsed and interacted with community content");
-          totalInteractions += 1;
-        }
+      // 3. Browse and interact with community content (always!)
+      logger("Browsing for relevant content to interact with...");
+      const browseResult = await browseAndInteractFunction.executable({ max_casts: "10", interaction_threshold: "0.3" }, logger);
+      if (browseResult.status === ExecutableGameFunctionStatus.Done) {
+        engagementResults.push("Browsed and interacted with community content");
+        totalInteractions += 1;
       }
 
-      // 4. Strategic casting (only occasionally, not every cycle)
-      if (Math.random() < 0.15) {
-        // 15% chance per 5-minute cycle = ~3-4 times per day
+      // 4. Strategic casting (very rarely, not every cycle)
+      if (Math.random() < 0.05) {
+        // 5% chance per 15-minute cycle = ~1-2 times per day
         logger("Creating and sharing meaningful content...");
 
         const castOptions = Math.floor(Math.random() * 3);
@@ -2551,8 +2392,8 @@ export const ensureCastingAndFollowingFunction = new GameFunction({
       const lastCastTime = personalStyle.lastCastTime ? new Date(personalStyle.lastCastTime) : new Date(0);
       const hoursSinceLastCast = (now.getTime() - lastCastTime.getTime()) / (1000 * 60 * 60);
 
-      // Only cast if it's been at least 6 hours since the last cast
-      if (hoursSinceLastCast >= 6) {
+      // Only cast if it's been at least 12 hours since the last cast (reduced frequency)
+      if (hoursSinceLastCast >= 12) {
         logger(`Casting meaningful content to Farcaster... (${hoursSinceLastCast.toFixed(1)} hours since last cast)`);
 
         // Randomly choose what to cast
@@ -2592,7 +2433,7 @@ export const ensureCastingAndFollowingFunction = new GameFunction({
           }
         }
       } else {
-        logger(`Skipping casting this cycle - only ${hoursSinceLastCast.toFixed(1)} hours since last cast (need 6+ hours)`);
+        logger(`Skipping casting this cycle - only ${hoursSinceLastCast.toFixed(1)} hours since last cast (need 12+ hours)`);
       }
 
       // 2. ALWAYS Follow people (100% guarantee)
@@ -2690,7 +2531,7 @@ export const ensureCastingAndFollowingFunction = new GameFunction({
       logger("Interacting with community content...");
       const interactResult = await browseAndInteractFunction.executable(
         {
-          max_casts: "10",
+          max_casts: "15", // Increased from 10
           interaction_threshold: "0.3", // Lower threshold for more interactions
         },
         logger

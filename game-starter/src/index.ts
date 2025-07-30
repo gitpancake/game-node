@@ -2,7 +2,7 @@ import { activity_agent } from "./agent";
 import { displayCastHistory, getMemoryStats, saveMemoryNow } from "./functions";
 
 let lastThoughtTime = 0;
-const THOUGHT_INTERVAL = parseInt(process.env.THOUGHT_INTERVAL || "900000"); // 15 minutes between outreach activities (reduced frequency)
+const THOUGHT_INTERVAL = parseInt(process.env.THOUGHT_INTERVAL || "1800000"); // 30 minutes between outreach activities (further reduced frequency)
 let lastApiCallTime = 0;
 const API_RATE_LIMIT = parseInt(process.env.API_RATE_LIMIT || "10000"); // 10 seconds between API calls
 
@@ -73,7 +73,7 @@ async function main() {
     }
 
     console.log("🎨 ASCII Art Enthusiast Agent Started!");
-    console.log("Agent will perform outreach every 15 minutes and cast 3-4 times per day.");
+    console.log("Agent will perform outreach every 30 minutes and cast 1-2 times per day.");
     console.log("Rate limiting enabled to prevent API throttling.");
     console.log("Press Ctrl+C to stop the agent.\n");
 
@@ -124,7 +124,7 @@ async function main() {
       }
 
       try {
-        // Check if it's time for outreach (every 15 minutes)
+        // Check if it's time for outreach (every 30 minutes)
         if (currentTime - lastThoughtTime >= THOUGHT_INTERVAL) {
           console.log("⏰ Time for outreach and discovery!");
           lastThoughtTime = currentTime;
