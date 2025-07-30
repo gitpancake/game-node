@@ -126,7 +126,7 @@ async function main() {
       try {
         // Check if it's time for outreach (every 30 minutes)
         if (currentTime - lastThoughtTime >= THOUGHT_INTERVAL) {
-          console.log("⏰ Time for outreach and discovery!");
+          console.log("⏰ Time for outreach, discovery, and engagement!");
           lastThoughtTime = currentTime;
 
           // Trigger outreach and discovery (but not necessarily casting)

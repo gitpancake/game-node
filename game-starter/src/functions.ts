@@ -2400,36 +2400,129 @@ export const ensureCastingAndFollowingFunction = new GameFunction({
         const castOptions = Math.floor(Math.random() * 3);
 
         if (castOptions === 0) {
-          // Cast thoughts
-          const thoughtsResult = await shareThoughtsFunction.executable({}, logger);
-          if (thoughtsResult.status === ExecutableGameFunctionStatus.Done) {
+          // Cast thoughts - generate content directly
+          try {
+            const prompt = `As an ASCII art enthusiast, share a brief thought about ASCII art and creativity (max 200 characters for Farcaster):
+
+Your ASCII language dictionary: ${JSON.stringify(personalStyle.asciiLanguage.dictionary)}
+
+Requirements:
+1. Keep it under 200 characters
+2. Be enthusiastic and genuine
+3. Reference ASCII art or creativity
+4. Make it suitable for social media
+
+Share a brief thought:`;
+
+            const completion = await rateLimitedAPICall(() =>
+              openai.chat.completions.create({
+                messages: [{ role: "user", content: prompt }],
+                model: "gpt-3.5-turbo",
+                temperature: 0.8,
+                max_tokens: 100,
+              })
+            );
+
+            const thoughtsContent = completion.choices[0].message.content || "Love exploring ASCII art and creative constraints!";
+            const castText = thoughtsContent.length > 250 ? thoughtsContent.substring(0, 247) + "..." : thoughtsContent;
+
+            const response = await neynarClient.publishCast({
+              signerUuid: FARCASTER_SIGNER_UUID!,
+              text: castText,
+            });
+
+            personalStyle.totalCastsMade++;
+            personalStyle.lastCastTime = new Date().toISOString();
+
             results.push("Cast thoughts about ASCII art");
             totalActions += 1;
+            logger(`✅ Cast thoughts: ${response.cast.hash}`);
+          } catch (castError) {
+            logger(`❌ Failed to cast thoughts: ${castError}`);
           }
         } else if (castOptions === 1) {
-          // Cast ASCII art
-          const subjects = ["creative expression", "geometric beauty", "digital art", "ascii landscape", "minimalist design"];
-          const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
-          const artResult = await generateAsciiArtFunction.executable(
-            {
-              subject: randomSubject,
-              style_preference: "minimalist",
-              oulipo_constraint: "geometric pattern",
-            },
-            logger
-          );
-          if (artResult.status === ExecutableGameFunctionStatus.Done) {
+          // Cast ASCII art - generate content directly
+          try {
+            const subjects = ["geometric pattern", "minimalist design", "creative expression"];
+            const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
+
+            const prompt = `Create a simple ASCII art piece about "${randomSubject}" (max 200 characters total including title):
+
+Requirements:
+1. Keep the entire cast under 200 characters
+2. Make it visually appealing
+3. Use simple ASCII characters
+4. Include a brief title
+
+Create ASCII art:`;
+
+            const completion = await rateLimitedAPICall(() =>
+              openai.chat.completions.create({
+                messages: [{ role: "user", content: prompt }],
+                model: "gpt-3.5-turbo",
+                temperature: 0.9,
+                max_tokens: 100,
+              })
+            );
+
+            const artContent = completion.choices[0].message.content || "ASCII Art: Simple geometric pattern\n\n* * *\n * * \n* * *";
+            const castText = artContent.length > 250 ? artContent.substring(0, 247) + "..." : artContent;
+
+            const response = await neynarClient.publishCast({
+              signerUuid: FARCASTER_SIGNER_UUID!,
+              text: castText,
+            });
+
+            personalStyle.totalCastsMade++;
+            personalStyle.lastCastTime = new Date().toISOString();
+
             results.push("Cast ASCII art");
             totalActions += 1;
+            logger(`✅ Cast ASCII art: ${response.cast.hash}`);
+          } catch (castError) {
+            logger(`❌ Failed to cast ASCII art: ${castError}`);
           }
         } else {
-          // Cast research
-          const researchTopics = ["oulipo techniques", "constrained creativity", "Georges Perec", "mathematical beauty"];
-          const randomTopic = researchTopics[Math.floor(Math.random() * researchTopics.length)];
-          const researchResult = await researchOulipoFunction.executable({ research_focus: randomTopic }, logger);
-          if (researchResult.status === ExecutableGameFunctionStatus.Done) {
+          // Cast research - generate content directly
+          try {
+            const researchTopics = ["oulipo techniques", "constrained creativity", "Georges Perec"];
+            const randomTopic = researchTopics[Math.floor(Math.random() * researchTopics.length)];
+
+            const prompt = `Share a brief insight about "${randomTopic}" in the context of Oulipo and ASCII art (max 200 characters for Farcaster):
+
+Requirements:
+1. Keep it under 200 characters
+2. Be informative and engaging
+3. Connect to ASCII art or creativity
+4. Make it suitable for social media
+
+Share a brief insight:`;
+
+            const completion = await rateLimitedAPICall(() =>
+              openai.chat.completions.create({
+                messages: [{ role: "user", content: prompt }],
+                model: "gpt-3.5-turbo",
+                temperature: 0.7,
+                max_tokens: 100,
+              })
+            );
+
+            const researchContent = completion.choices[0].message.content || "Oulipo's constrained creativity inspires unique ASCII art patterns!";
+            const castText = researchContent.length > 250 ? researchContent.substring(0, 247) + "..." : researchContent;
+
+            const response = await neynarClient.publishCast({
+              signerUuid: FARCASTER_SIGNER_UUID!,
+              text: castText,
+            });
+
+            personalStyle.totalCastsMade++;
+            personalStyle.lastCastTime = new Date().toISOString();
+
             results.push("Cast research findings");
             totalActions += 1;
+            logger(`✅ Cast research: ${response.cast.hash}`);
+          } catch (castError) {
+            logger(`❌ Failed to cast research: ${castError}`);
           }
         }
       } else {
