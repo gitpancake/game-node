@@ -9,9 +9,11 @@ import {
   commentOnCastFunction,
   crawlFarcasterAccountsFunction,
   ensureCastingAndFollowingFunction,
+  followBaseAccountsFunction,
   followFarcasterAccountsFunction,
   likeCastFunction,
   shareThoughtsFunction,
+  testFollowKimasendorfFunction,
 } from "../functions";
 
 // Social Worker for Farcaster interactions and community building
@@ -24,7 +26,9 @@ export const socialWorker = new GameWorker({
     shareThoughtsFunction,
     castToFarcasterFunction,
     crawlFarcasterAccountsFunction,
+    followBaseAccountsFunction,
     followFarcasterAccountsFunction,
+    testFollowKimasendorfFunction,
     analyzeBaseAccountFunction,
     analyzePredefinedBaseAccountsFunction,
     analyzeAccountWithCastsFunction,

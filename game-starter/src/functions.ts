@@ -334,11 +334,12 @@ export const researchOulipoFunction = new GameFunction({
             Your ASCII language dictionary: ${JSON.stringify(personalStyle.asciiLanguage.dictionary)}
             
             Requirements:
-            1. Provide detailed research about Oulipo principles and Georges Perec
+            1. Provide concise research about Oulipo principles and Georges Perec (max 200 words)
             2. Incorporate 1-2 words from your ASCII language dictionary naturally into your research findings
             3. Show how your linguistic development connects to your theoretical understanding
             4. Explain how these principles inspire ASCII art creation
             5. Make connections between Oulipo constraints and ASCII art limitations
+            6. Write in a style suitable for social media sharing - engaging and concise
             
             Provide specific examples and explain how these techniques could inspire ASCII art creation.`;
 
@@ -347,7 +348,7 @@ export const researchOulipoFunction = new GameFunction({
           messages: [{ role: "user", content: prompt }],
           model: "gpt-3.5-turbo",
           temperature: 0.7,
-          max_tokens: 500,
+          max_tokens: 300,
         })
       );
 
@@ -379,7 +380,7 @@ export const researchOulipoFunction = new GameFunction({
         }
 
         // Create a concise research summary for Farcaster
-        const researchSummary = `Oulipo Research: ${focus}\n\n${researchWithAscii.substring(0, 200)}...`;
+        const researchSummary = `Oulipo Research: ${focus}\n\n${researchWithAscii.substring(0, 150)}`;
         const castText = researchSummary.length > 280 ? researchSummary.substring(0, 277) + "..." : researchSummary;
 
         logger(`Attempting to cast research to Farcaster...`);
@@ -559,8 +560,9 @@ export const shareThoughtsFunction = new GameFunction({
           throw new Error("No thoughts content to cast");
         }
 
-        // Ensure the cast doesn't exceed Farcaster's character limit
-        const castText = thoughtsWithAscii.length > 280 ? thoughtsWithAscii.substring(0, 277) + "..." : thoughtsWithAscii;
+        // Create a more concise version for Farcaster
+        const conciseThoughts = thoughtsWithAscii.length > 250 ? thoughtsWithAscii.substring(0, 247) + "..." : thoughtsWithAscii;
+        const castText = conciseThoughts;
 
         logger(`Attempting to cast to Farcaster...`);
         logger(`Cast text length: ${castText.length} characters`);
@@ -687,7 +689,7 @@ export const generateAsciiArtFunction = new GameFunction({
       let castResult = "";
       try {
         if (NEYNAR_API_KEY && FARCASTER_SIGNER_UUID && artWithAscii) {
-          // Create a cast with the ASCII art and context
+          // Create a more concise cast with the ASCII art
           const artMessage = `ASCII Art: ${subject}\n\n${artWithAscii}`;
           const castText = artMessage.length > 280 ? artMessage.substring(0, 277) + "..." : artMessage;
 
@@ -2423,6 +2425,105 @@ export const activeSocialEngagementFunction = new GameFunction({
   },
 });
 
+// Function to follow base inspiration accounts
+export const followBaseAccountsFunction = new GameFunction({
+  name: "follow_base_accounts",
+  description: "Follow base inspiration accounts like kimasendorf and other key ASCII art creators",
+  args: [] as const,
+  executable: async (args, logger) => {
+    try {
+      if (!NEYNAR_API_KEY || !FARCASTER_SIGNER_UUID) {
+        return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, "Neynar API key or Farcaster signer UUID not configured. Cannot follow base accounts.");
+      }
+
+      logger("Following base inspiration accounts...");
+
+      // Define base accounts to follow
+      const baseAccounts = [
+        { username: "kimasendorf", fid: 3, displayName: "Kim Asendorf", relevanceScore: 0.9 },
+        { username: "dwr", fid: 2, displayName: "Dwr", relevanceScore: 0.8 },
+        { username: "vbuterin", fid: 5650, displayName: "Vitalik Buterin", relevanceScore: 0.7 },
+      ];
+
+      const followResults = [];
+
+      for (const account of baseAccounts) {
+        try {
+          logger(`Attempting to follow base account @${account.username} (FID: ${account.fid})...`);
+
+          // Follow the user
+          const followResponse = await neynarClient.followUser({
+            signerUuid: FARCASTER_SIGNER_UUID!,
+            targetFids: [account.fid],
+          });
+
+          followResults.push({
+            username: account.username,
+            success: true,
+            message: "Successfully followed base account",
+          });
+
+          logger(`✅ Successfully followed base account @${account.username}`);
+
+          // Add to discovered accounts if not already there
+          if (!personalStyle.discoveredAccounts) {
+            personalStyle.discoveredAccounts = [];
+          }
+
+          const exists = personalStyle.discoveredAccounts.find((acc) => acc.username === account.username);
+          if (!exists) {
+            personalStyle.discoveredAccounts.push({
+              ...account,
+              followerCount: 0,
+              followingCount: 0,
+              bio: "Base inspiration account",
+              isFollowing: true,
+              followedAt: new Date().toISOString(),
+              discoveredAt: new Date().toISOString(),
+            });
+          }
+
+          // Rate limiting between follows
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        } catch (followError) {
+          const errorMessage = followError instanceof Error ? followError.message : "Unknown error";
+          followResults.push({
+            username: account.username,
+            success: false,
+            message: errorMessage,
+          });
+
+          logger(`❌ Failed to follow base account @${account.username}: ${errorMessage}`);
+        }
+      }
+
+      // Update statistics
+      if (!personalStyle.followingStats) {
+        personalStyle.followingStats = {
+          totalFollowed: 0,
+          lastFollowTime: new Date().toISOString(),
+        };
+      }
+      personalStyle.followingStats.totalFollowed += followResults.filter((r) => r.success).length;
+      personalStyle.followingStats.lastFollowTime = new Date().toISOString();
+
+      // Check for auto-save
+      checkAutoSave();
+
+      const successfulFollows = followResults.filter((r) => r.success).length;
+
+      return new ExecutableGameFunctionResponse(
+        ExecutableGameFunctionStatus.Done,
+        `Base Account Following Results:\n\nSuccessfully followed ${successfulFollows}/${baseAccounts.length} base accounts:\n\n${followResults
+          .map((result) => `${result.success ? "✅" : "❌"} @${result.username}: ${result.message}`)
+          .join("\n")}`
+      );
+    } catch (e) {
+      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, `Failed to follow base accounts: ${e instanceof Error ? e.message : "Unknown error"}`);
+    }
+  },
+});
+
 // Function to ensure regular casting and following
 export const ensureCastingAndFollowingFunction = new GameFunction({
   name: "ensure_casting_and_following",
@@ -2497,7 +2598,16 @@ export const ensureCastingAndFollowingFunction = new GameFunction({
       // 2. ALWAYS Follow people (100% guarantee)
       logger("Following new people...");
 
-      // First discover accounts with multiple search terms to find more people
+      // First, ALWAYS try to follow base accounts
+      logger("Step 1: Following base inspiration accounts...");
+      const baseFollowResult = await followBaseAccountsFunction.executable({}, logger);
+      if (baseFollowResult.status === ExecutableGameFunctionStatus.Done) {
+        results.push("Followed base accounts");
+        totalActions += 1;
+      }
+
+      // Then discover and follow additional accounts
+      logger("Step 2: Discovering and following additional accounts...");
       const searchTerms = ["ascii art creative coding digital art", "ascii art", "creative coding", "digital art", "geometric art", "minimalist design"];
 
       let totalDiscovered = 0;
@@ -2530,7 +2640,7 @@ export const ensureCastingAndFollowingFunction = new GameFunction({
           logger
         );
         if (followResult.status === ExecutableGameFunctionStatus.Done) {
-          results.push("Followed new accounts");
+          results.push("Followed discovered accounts");
           totalActions += 1;
         }
       } else {
@@ -2539,7 +2649,6 @@ export const ensureCastingAndFollowingFunction = new GameFunction({
 
         // Add some predefined accounts to discovered accounts
         const predefinedAccounts = [
-          { username: "kimasendorf", fid: 3, displayName: "Kim Asendorf", relevanceScore: 0.9 },
           { username: "ascii_art", fid: 12345, displayName: "ASCII Art", relevanceScore: 0.8 },
           { username: "creative_coding", fid: 67890, displayName: "Creative Coding", relevanceScore: 0.8 },
         ];
@@ -2734,3 +2843,55 @@ Generate a comment that reflects your unique personality as an ASCII art pioneer
     return integrateAsciiLanguage("Love this creative work!", 1);
   }
 }
+
+// Function to test following kimasendorf directly
+export const testFollowKimasendorfFunction = new GameFunction({
+  name: "test_follow_kimasendorf",
+  description: "Test function to directly follow kimasendorf (FID: 3) to verify following functionality",
+  args: [] as const,
+  executable: async (args, logger) => {
+    try {
+      if (!NEYNAR_API_KEY || !FARCASTER_SIGNER_UUID) {
+        return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, "Neynar API key or Farcaster signer UUID not configured. Cannot follow kimasendorf.");
+      }
+
+      logger("Testing follow functionality with kimasendorf (FID: 3)...");
+
+      try {
+        // Follow kimasendorf directly
+        const followResponse = await neynarClient.followUser({
+          signerUuid: FARCASTER_SIGNER_UUID!,
+          targetFids: [3], // kimasendorf's FID
+        });
+
+        logger(`✅ SUCCESS: Follow response received: ${JSON.stringify(followResponse)}`);
+
+        // Update following stats
+        if (!personalStyle.followingStats) {
+          personalStyle.followingStats = {
+            totalFollowed: 0,
+            lastFollowTime: new Date().toISOString(),
+          };
+        }
+        personalStyle.followingStats.totalFollowed += 1;
+        personalStyle.followingStats.lastFollowTime = new Date().toISOString();
+
+        // Check for auto-save
+        checkAutoSave();
+
+        return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, `✅ Successfully followed @kimasendorf (FID: 3)!\n\nFollow response: ${JSON.stringify(followResponse, null, 2)}`);
+      } catch (followError) {
+        const errorMessage = followError instanceof Error ? followError.message : "Unknown error";
+        logger(`❌ FAILED to follow kimasendorf: ${errorMessage}`);
+
+        if (followError instanceof Error && followError.message.includes("already following")) {
+          return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Done, `ℹ️ Already following @kimasendorf (FID: 3) - this is expected if already following.`);
+        }
+
+        return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, `❌ Failed to follow @kimasendorf: ${errorMessage}`);
+      }
+    } catch (e) {
+      return new ExecutableGameFunctionResponse(ExecutableGameFunctionStatus.Failed, `Failed to test follow kimasendorf: ${e instanceof Error ? e.message : "Unknown error"}`);
+    }
+  },
+});
