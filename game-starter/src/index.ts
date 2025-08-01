@@ -29,6 +29,7 @@ async function main() {
     // Initialize the agent
     console.log("🔄 Initializing ASCII Art Enthusiast Agent...");
     await activity_agent.init();
+    await activity_agent.run(15, { verbose: true });
 
     console.log("🎨 ASCII Art Enthusiast Agent Started!");
     console.log("Agent is now running autonomously using the GAME framework.");
@@ -70,18 +71,10 @@ async function main() {
     displayCastHistory();
 
     // Let the GAME framework handle autonomous operation
-    // The agent will decide when and what actions to take
     console.log("🚀 Agent is now running autonomously. The GAME framework will handle decision-making and execution.\n");
 
-    // Keep the process alive
-    while (true) {
-      await new Promise(resolve => setTimeout(resolve, 60000)); // Check every minute
-      
-      // Optional: Periodic status check
-      const stats = getMemoryStats();
-      console.log(`📊 Status: ${stats.totalCastsMade} casts, ${stats.totalArtCreated} art pieces, last saved: ${stats.lastSaveTime}`);
-    }
-
+    // The GAME framework keeps the process alive and handles all execution
+    // No need for any loops - just let it run!
   } catch (error) {
     console.error("❌ Error running ASCII art enthusiast:", error);
     process.exit(1);
