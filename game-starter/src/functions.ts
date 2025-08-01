@@ -31,13 +31,14 @@ const neynarConfig = new Configuration({
   apiKey: NEYNAR_API_KEY!,
 });
 
-const neynarClient = new NeynarAPIClient(neynarConfig);
+export const neynarClient = new NeynarAPIClient(neynarConfig);
+export const FARCASTER_SIGNER_UUID_EXPORT = FARCASTER_SIGNER_UUID;
 
 // Persistent memory file path
 const MEMORY_FILE_PATH = resolve(__dirname, "../agent_memory.json");
 
 // Global state to track personal style development
-let personalStyle = {
+export let personalStyle = {
   preferences: [] as string[],
   techniques: [] as string[],
   inspirations: [] as string[],
@@ -116,7 +117,7 @@ function savePersistentMemory() {
 let lastAutoSave = Date.now();
 const AUTO_SAVE_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
-function checkAutoSave() {
+export function checkAutoSave() {
   const currentTime = Date.now();
   if (currentTime - lastAutoSave >= AUTO_SAVE_INTERVAL) {
     savePersistentMemory();
