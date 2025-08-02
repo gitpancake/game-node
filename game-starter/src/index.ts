@@ -29,7 +29,7 @@ async function main() {
     // Initialize the agent
     console.log("🔄 Initializing ASCII Art Enthusiast Agent...");
     await activity_agent.init();
-    await activity_agent.run(15, { verbose: true });
+    await activity_agent.run(300, { verbose: true }); // Run every 5 minutes instead of 15 seconds
 
     console.log("🎨 ASCII Art Enthusiast Agent Started!");
     console.log("Agent is now running autonomously using the GAME framework.");
@@ -51,6 +51,9 @@ async function main() {
     console.log("");
     console.log("↩️ Farcaster Reply Worker:");
     console.log("  - farcaster_reply: Reply to comments on our casts");
+    console.log("");
+    console.log("💬 Farcaster Comment Response Worker:");
+    console.log("  - farcaster_respond_to_comments: Respond to comments on our own casts");
     console.log("");
     console.log("📚 Research Worker:");
     console.log("  - research_oulipo: Research Georges Perec and Oulipo movement");

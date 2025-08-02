@@ -5,7 +5,8 @@ export { systemWorker } from "./system-worker";
 
 // New focused Farcaster workers
 export { farcasterCastWorker } from "./farcaster-cast-worker";
+export { farcasterCommentResponseWorker } from "./farcaster-comment-response-worker";
 export { farcasterCommentWorker } from "./farcaster-comment-worker";
-export { farcasterLikeWorker } from "./farcaster-like-worker";
 export { farcasterFollowWorker } from "./farcaster-follow-worker";
+export { farcasterLikeWorker } from "./farcaster-like-worker";
 export { farcasterReplyWorker } from "./farcaster-reply-worker";
