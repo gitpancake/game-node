@@ -1,5 +1,6 @@
 import { activity_agent } from "./agent";
 import { displayCastHistory, getMemoryStats, saveMemoryNow } from "./functions";
+import { initializeOurFid } from "./webhook-handler";
 import { createWebhookServer } from "./webhook-server";
 
 // Graceful shutdown handler
@@ -30,6 +31,10 @@ async function main() {
     // Initialize the agent
     console.log("🔄 Initializing ASCII Art Enthusiast Agent...");
     await activity_agent.init();
+
+    // Initialize our FID for reasoning
+    console.log("🔍 Initializing bot FID for intelligent reasoning...");
+    await initializeOurFid();
 
     // Start webhook server for real-time notifications
     console.log("🔗 Starting webhook server for real-time notifications...");

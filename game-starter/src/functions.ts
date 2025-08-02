@@ -49,6 +49,7 @@ export let personalStyle = {
   totalArtCreated: 0,
   totalThoughtsShared: 0,
   totalCastsMade: 0,
+  ourFid: null as number | null, // Our bot's FID
   // Cast History
   castHistory: [] as Array<{
     hash: string;

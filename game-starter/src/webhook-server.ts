@@ -58,10 +58,24 @@ export function createWebhookServer(port: number = 3001) {
         return;
       }
 
-      // Only allow POST requests
+      // Handle GET requests for testing
+      if (req.method === "GET") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            status: "Webhook server is running",
+            timestamp: new Date().toISOString(),
+            supported_events: ["cast.created", "reaction.created"],
+            message: "Send POST requests to this endpoint with webhook events",
+          })
+        );
+        return;
+      }
+
+      // Only allow POST requests for webhook events
       if (req.method !== "POST") {
         res.writeHead(405, { "Content-Type": "text/plain" });
-        res.end("Method not allowed");
+        res.end("Method not allowed. Use GET for status, POST for webhook events");
         return;
       }
 
