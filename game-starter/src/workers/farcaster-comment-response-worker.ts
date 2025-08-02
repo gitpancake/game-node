@@ -26,10 +26,70 @@ async function rateLimitedAPICall<T>(apiCall: () => Promise<T>): Promise<T> {
   return await apiCall();
 }
 
+// Function to generate dynamic search terms based on agent's evolution
+async function generateDynamicSearchTerms(logger: any): Promise<string> {
+  try {
+    // Analyze the agent's current state and evolution
+    const agentState = {
+      artHistory: personalStyle.artHistory.length,
+      oulipoResearch: personalStyle.oulipoResearch.length,
+      asciiLanguageWords: personalStyle.asciiLanguage.totalWords,
+      asciiLanguageComplexity: personalStyle.asciiLanguage.currentComplexity,
+      recentCasts: personalStyle.castHistory.slice(-5).map((cast) => cast.text),
+      discoveredAccounts: personalStyle.discoveredAccounts.length,
+      totalArtCreated: personalStyle.totalArtCreated,
+      totalThoughtsShared: personalStyle.totalThoughtsShared,
+      totalCastsMade: personalStyle.totalCastsMade,
+    };
+
+    const prompt = `As an ASCII art enthusiast agent evolving on Farcaster, analyze my current state and generate 3-5 relevant search terms to find users who might have commented on my casts.
+
+My Current State:
+- Art pieces created: ${agentState.totalArtCreated}
+- Research entries: ${agentState.oulipoResearch}
+- ASCII language words: ${agentState.asciiLanguageWords} (complexity level: ${agentState.asciiLanguageComplexity}/10)
+- Recent cast themes: ${agentState.recentCasts.join(", ")}
+- Discovered accounts: ${agentState.discoveredAccounts}
+- Total engagement: ${agentState.totalCastsMade} casts, ${agentState.totalThoughtsShared} thoughts
+
+My ASCII Language Dictionary: ${JSON.stringify(personalStyle.asciiLanguage.dictionary)}
+
+Recent Oulipo Research: ${personalStyle.oulipoResearch
+      .slice(-3)
+      .map((r) => r.topic || r.title)
+      .join(", ")}
+
+Based on my evolution, generate 3-5 search terms that would help me find users who might have commented on my ASCII art and Oulipo-related casts. Consider:
+1. My artistic interests and ASCII art focus
+2. My Oulipo research and constrained writing interests
+3. My ASCII language development
+4. Recent themes in my casts and thoughts
+5. The community I'm building around me
+
+Return ONLY the search terms separated by spaces, no explanation. Example: "ascii art oulipo constraints"`;
+
+    const completion = await rateLimitedAPICall(() =>
+      openai.chat.completions.create({
+        messages: [{ role: "user", content: prompt }],
+        model: "gpt-4o-mini",
+        max_tokens: 100,
+        temperature: 0.7,
+      })
+    );
+
+    const searchTerms = completion.choices[0]?.message?.content?.trim() || "ascii art creativity";
+    logger(`🤖 AI generated search terms: ${searchTerms}`);
+    return searchTerms;
+  } catch (error) {
+    logger(`❌ Failed to generate dynamic search terms: ${error instanceof Error ? error.message : "Unknown error"}`);
+    return "ascii art creativity"; // Fallback
+  }
+}
+
 // Function to respond to comments on our casts
 const farcasterCommentResponseFunction = new GameFunction({
   name: "farcaster_respond_to_comments",
-  description: "Find comments on our recent casts and respond to them thoughtfully",
+  description: "Find comments on our recent casts and respond to them thoughtfully using AI-generated search terms",
   args: [
     { name: "max_responses", description: "Maximum number of comments to respond to (default: 5)" },
     { name: "hours_back", description: "How many hours back to look for comments (default: 24)" },
@@ -41,15 +101,13 @@ const farcasterCommentResponseFunction = new GameFunction({
 
       logger(`Looking for comments on our casts from the last ${hoursBack} hours`);
 
-      // For now, we'll use a different approach since we need to get our FID
-      // We'll search for our own casts by looking for recent casts and checking if they're ours
-      logger(`Looking for our recent casts to find comments`);
+      // Generate dynamic search terms based on agent's evolution
+      const searchTerms = await generateDynamicSearchTerms(logger);
 
-      // For now, we'll use a simplified approach by searching for relevant content
-      // and responding to recent casts that might have comments
+      // Search for users with relevant content that might have commented on our casts
       const searchResponse = await neynarClient.searchUser({
-        q: "ascii art",
-        limit: 5,
+        q: searchTerms,
+        limit: 10,
       });
 
       if (!searchResponse.result || searchResponse.result.users.length === 0) {
@@ -60,11 +118,11 @@ const farcasterCommentResponseFunction = new GameFunction({
       const cutoffTime = new Date(Date.now() - hoursBack * 60 * 60 * 1000);
 
       // Get recent casts from relevant users and check for comments
-      for (const user of searchResponse.result.users.slice(0, 2)) {
+      for (const user of searchResponse.result.users.slice(0, 3)) {
         try {
           const userCasts = await neynarClient.fetchCastsForUser({
             fid: user.fid,
-            limit: 3,
+            limit: 5,
           });
 
           if (!userCasts.casts || userCasts.casts.length === 0) {
@@ -74,20 +132,26 @@ const farcasterCommentResponseFunction = new GameFunction({
           // Check each cast for comments
           for (const cast of userCasts.casts) {
             try {
-              // For now, we'll simulate finding comments by looking at recent activity
-              // In a full implementation, we'd use fetchCastsByParent
-              logger(`Checking cast ${cast.hash} for potential comments`);
+              // Check if this cast is a reply to one of our casts
+              // We'll look for casts that mention ASCII art or our themes
+              const castText = cast.text.toLowerCase();
+              const isRelevantComment = castText.includes("ascii") || castText.includes("art") || castText.includes("oulipo") || castText.includes("perec") || castText.includes("constraint");
 
-              // For now, we'll generate a response to the cast itself as a comment
-              // In a full implementation, we'd find actual comments and respond to them
-              const responseText = await generateCommentResponse(cast.text, cast.text);
-
-              if (responseText.length > 200) {
-                logger(`Skipping cast - generated response too long: ${responseText.length} chars`);
+              if (!isRelevantComment) {
                 continue;
               }
 
-              // Reply to the cast as a comment
+              logger(`Found relevant comment on cast ${cast.hash}: ${cast.text}`);
+
+              // Generate a response to this comment
+              const responseText = await generateCommentResponse(cast.text, "Our ASCII art cast");
+
+              if (responseText.length > 200) {
+                logger(`Skipping comment - generated response too long: ${responseText.length} chars`);
+                continue;
+              }
+
+              // Reply to the comment
               const response = await neynarClient.publishCast({
                 signerUuid: FARCASTER_SIGNER_UUID!,
                 text: responseText,
@@ -101,7 +165,7 @@ const farcasterCommentResponseFunction = new GameFunction({
                 success: true,
               });
 
-              logger(`✅ Responded to cast ${cast.hash}: ${responseText}`);
+              logger(`✅ Responded to comment on cast ${cast.hash}: ${responseText}`);
 
               // Rate limiting between responses
               await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -120,7 +184,7 @@ const farcasterCommentResponseFunction = new GameFunction({
                 error: errorMessage,
               });
 
-              logger(`❌ Failed to respond to cast ${cast.hash}: ${errorMessage}`);
+              logger(`❌ Failed to respond to comment on cast ${cast.hash}: ${errorMessage}`);
             }
           }
 
