@@ -10,3 +10,4 @@ export { farcasterCommentWorker } from "./farcaster-comment-worker";
 export { farcasterFollowWorker } from "./farcaster-follow-worker";
 export { farcasterLikeWorker } from "./farcaster-like-worker";
 export { farcasterReplyWorker } from "./farcaster-reply-worker";
+export { webhookSetupWorker } from "./webhook-setup-worker";

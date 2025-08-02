@@ -1,5 +1,6 @@
 import { activity_agent } from "./agent";
 import { displayCastHistory, getMemoryStats, saveMemoryNow } from "./functions";
+import { createWebhookServer } from "./webhook-server";
 
 // Graceful shutdown handler
 function handleGracefulShutdown() {
@@ -29,6 +30,12 @@ async function main() {
     // Initialize the agent
     console.log("🔄 Initializing ASCII Art Enthusiast Agent...");
     await activity_agent.init();
+
+    // Start webhook server for real-time notifications
+    console.log("🔗 Starting webhook server for real-time notifications...");
+    const webhookServer = createWebhookServer(3001);
+
+    // Start the agent with reduced frequency since webhooks handle real-time responses
     await activity_agent.run(300, { verbose: true }); // Run every 5 minutes instead of 15 seconds
 
     console.log("🎨 ASCII Art Enthusiast Agent Started!");
@@ -54,6 +61,9 @@ async function main() {
     console.log("");
     console.log("💬 Farcaster Comment Response Worker:");
     console.log("  - farcaster_respond_to_comments: Respond to comments on our own casts");
+    console.log("");
+    console.log("🔧 Webhook Setup Worker:");
+    console.log("  - webhook_setup_info: Get webhook setup instructions for real-time notifications");
     console.log("");
     console.log("📚 Research Worker:");
     console.log("  - research_oulipo: Research Georges Perec and Oulipo movement");

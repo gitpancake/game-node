@@ -11,6 +11,7 @@ import {
   languageWorker,
   researchWorker,
   systemWorker,
+  webhookSetupWorker,
 } from "./workers";
 dotenv.config();
 
@@ -30,6 +31,7 @@ export const activity_agent = new GameAgent(process.env.API_KEY!, {
     farcasterFollowWorker,
     farcasterReplyWorker,
     farcasterCommentResponseWorker,
+    webhookSetupWorker,
     researchWorker,
     creativeWorker,
     languageWorker,
